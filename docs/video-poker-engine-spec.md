@@ -313,6 +313,78 @@ interface EngineError extends Error {
 }
 ```
 
+## Test Suite Requirements
+
+A conforming implementation must include an automated test suite for the engine. The suite must run without network access, real randomness, timers, UI, persistence, or external services. Tests must be deterministic and must use an injected `Rng`, direct pure-helper tests, or other local test-only fixtures to control card order.
+
+The test suite must cover the public engine API (`snapshot`, `addCredits`, `deal`, and `draw`) and any separately exported pure helpers for deck construction, shuffling, hand evaluation, payout lookup, input validation, and error creation. If a behavior can only be observed through the public API, the test must assert it through public snapshots, dealt hands, results, thrown `EngineError` values, and unchanged state after failures.
+
+Recommended test helpers:
+
+| Helper | Purpose |
+| --- | --- |
+| `ScriptedRng` | Returns a fixed sequence of integers and records every `maxExclusive` argument |
+| `constantRng(0)` | Produces a deterministic Fisher-Yates order for simple repeatable deal/draw flow tests |
+| `riggedDeck` or pure evaluator helper | Allows direct hand-rank tests without encoding every target hand through shuffle indexes |
+| `expectEngineError(code)` | Asserts both that an operation throws and that the thrown error has the required `code` |
+| `expectStateUnchanged(before)` | Verifies failed operations are atomic |
+
+Minimum required test groups:
+
+| Group | Required Coverage |
+| --- | --- |
+| Configuration validation | Accepts `JacksOrBetter` with fixed `1..5` bet range; rejects any other variant, minimum bet, maximum bet, or invalid initial credit amount |
+| Snapshot phases | Verifies exact required and absent fields for `ready`, `dealt`, and `complete` snapshots |
+| Credit operations | Covers `initialCredits: 0`, `addCredits(0)`, positive credit additions, non-integer additions, negative additions, overflow additions, and rejection of `addCredits` during `dealt` |
+| Betting | Covers valid bets `1..5`, non-integer bets, bets below 1, bets above 5, and bets greater than available credits |
+| Deal behavior | Deducts the bet atomically, creates a fresh 52-card deck, returns five unique cards, enters `dealt`, rejects a second deal while `dealt`, and clears `lastResult` when dealing after `complete` |
+| Draw behavior | Draws exactly once, rejects draw before deal and after complete, replaces no-held/all-held/partially-held positions correctly, preserves held card positions, sorts held indexes, and consumes replacement cards in ascending index order |
+| Held index validation | Accepts every unique subset of indexes `0..4`; rejects duplicate, non-integer, negative, and greater-than-4 indexes without mutating state |
+| Hand evaluation | Covers every paying rank, `nothing`, rank-order independence, low-ace straights, high-ace straights, straight flush versus royal flush, low pair versus Jacks-or-Better pair, and precedence when multiple patterns could match |
+| Pay table | Verifies all payout rows for bets `1..5`, including the 5-credit royal flush bonus and gross-payout semantics |
+| Credit settlement | Verifies `creditsAfterDeal`, `payout`, `netCredits`, `creditsAfterRound`, zero-payout loss, break-even Jacks-or-Better pair, positive wins, and payout overflow rejection |
+| Deck construction | Verifies exactly 52 unique cards, canonical suit order, canonical rank order, and no duplicate cards across a full round |
+| Shuffle and RNG | Verifies Fisher-Yates calls `nextInt` exactly 51 times with `maxExclusive` values `52` down to `2`, rejects out-of-range and non-integer RNG outputs, and leaves state unchanged after RNG failure |
+| Immutability | Verifies mutating returned snapshots, arrays, cards, dealt hands, and results cannot mutate internal engine state |
+| Error shape | Verifies every validation failure throws an `EngineError` with one of the required codes |
+| Atomicity | Verifies every failed `deal`, `draw`, and `addCredits` operation leaves phase, credits, active hand, held indexes, and last result unchanged |
+
+Required concrete hand-evaluation test cases:
+
+| Final Hand | Expected Rank | Notes |
+| --- | --- | --- |
+| `10H JH QH KH AH` | `royalFlush` | Royal flush, high ace, same suit |
+| `AH 2H 3H 4H 5H` | `straightFlush` | Low ace straight flush, not royal |
+| `9C 10C JC QC KC` | `straightFlush` | Non-royal high straight flush |
+| `7C 7D 7H 7S 2C` | `fourOfAKind` | Four matching ranks |
+| `KC KD KH 4S 4D` | `fullHouse` | Three plus pair |
+| `2S 5S 8S JS KS` | `flush` | Flush that is not straight |
+| `AC 2D 3H 4S 5C` | `straight` | Low ace mixed suits |
+| `10C JD QH KS AC` | `straight` | High ace mixed suits |
+| `9C 10D JH QS KC` | `straight` | King-high mixed-suit straight |
+| `5C 5D 5S 9H QC` | `threeOfAKind` | Rank counts `3,1,1` |
+| `3C 3D QH QS 8C` | `twoPair` | Rank counts `2,2,1` |
+| `JC JD 2H 7S 9C` | `jacksOrBetter` | Paying pair |
+| `AC AD 2H 7S 9C` | `jacksOrBetter` | Ace pair pays |
+| `10C 10D 2H 7S 9C` | `nothing` | Tens or lower do not pay |
+| `2C 5D 8H JS AC` | `nothing` | No pair, no straight, no flush |
+
+Required public-flow test cases:
+
+| Scenario | Required Assertions |
+| --- | --- |
+| Initial engine with `initialCredits: 0` | Snapshot is exactly `ready` with `credits: 0` and no hand/result fields |
+| Deal with `initialCredits: 10`, `bet: 5` | Returns `phase: dealt`, `bet: 5`, `credits: 5`, five unique cards, and snapshot matches the active hand |
+| Draw with `heldIndexes: []` | Replaces all five cards from the remaining deck and returns `heldIndexes: []` |
+| Draw with `heldIndexes: [0,1,2,3,4]` | Keeps every original card and returns all held indexes sorted |
+| Draw with `heldIndexes: [4,1]` | Returns `heldIndexes: [1,4]`; positions `1` and `4` are unchanged; positions `0`, `2`, and `3` receive the next three draw cards in that order |
+| Complete losing 5-credit round from 100 credits | Ending credits are `95`, `payout: 0`, `netCredits: -5` |
+| Complete Jacks-or-Better 5-credit round from 100 credits | Ending credits are `100`, `payout: 5`, `netCredits: 0` |
+| Complete two-pair 5-credit round from 100 credits | Ending credits are `105`, `payout: 10`, `netCredits: 5` |
+| Complete royal-flush 5-credit round from 100 credits | Ending credits are `4095`, `payout: 4000`, `netCredits: 3995` |
+| Add credits after `complete` | Snapshot credits change, but `lastResult.credits` remains the original round-ending balance |
+| New deal after `complete` | Snapshot enters `dealt`, deducts the new bet, and no longer exposes `lastResult` |
+
 ## Acceptance Criteria
 
 A conforming implementation must satisfy these behaviors:
