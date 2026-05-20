@@ -1,25 +1,53 @@
 #!/usr/bin/env node
 import {useCallback, useState} from 'react';
 import {Box, Text, render, useApp, useInput, useStdin} from 'ink';
-import Image, {TerminalInfoProvider} from 'ink-picture';
-import {buttons} from './config/buttons.js';
+import Image, {TerminalInfoProvider, useTerminalCapabilities} from 'ink-picture';
 import {cardHeight, cardSpacing, cardWidth, displayedCards} from './rendered-cards.js';
-import type {ButtonConfig} from './types/button-config.js';
 import type {MouseClick} from './types/mouse-click.js';
 import {useMouse} from './util/use-mouse.js';
 
-function CardImages() {
+const cardOuterHeight = cardHeight + 3;
+const cardOuterWidth = cardWidth + 2;
+const firstCardColumn = 1;
+const firstCardRow = 4;
+
+type CardImagesProps = {
+	activeIndex: number;
+	selectedIndexes: ReadonlySet<number>;
+};
+
+function CardImages({activeIndex, selectedIndexes}: CardImagesProps) {
 	return (
 		<Box flexDirection="row">
 			{displayedCards.map((card, index) => (
 				<Box
 					key={card.fileName}
-					width={cardWidth}
-					height={cardHeight}
+					width={cardOuterWidth}
+					height={cardOuterHeight}
 					marginRight={index === displayedCards.length - 1 ? 0 : cardSpacing}
+					flexDirection="column"
 					flexShrink={0}
+					justifyContent="space-between"
 				>
-					<Image src={card.path} width={cardWidth} height={cardHeight} alt={card.fileName} />
+					<Box
+						width={cardOuterWidth}
+						height={cardHeight + 2}
+						borderStyle={activeIndex === index ? 'single' : undefined}
+						borderColor="cyan"
+						paddingX={activeIndex === index ? 0 : 1}
+						paddingY={activeIndex === index ? 0 : 1}
+					>
+						<Image src={card.path} width={cardWidth} height={cardHeight} alt={card.fileName} />
+					</Box>
+					<Box width={cardOuterWidth} height={1} justifyContent="center">
+						{selectedIndexes.has(index) ? (
+							<Text color="yellow" bold>
+								SELECTED
+							</Text>
+						) : (
+							<Text> </Text>
+						)}
+					</Box>
 				</Box>
 			))}
 		</Box>
@@ -30,13 +58,29 @@ function App() {
 	const {exit} = useApp();
 	const {isRawModeSupported} = useStdin();
 	const canUseRawInput = Boolean(process.stdin.isTTY && isRawModeSupported);
-	const [focusedIndex, setFocusedIndex] = useState(0);
-	const [message, setMessage] = useState('Ready');
+	const [activeCardIndex, setActiveCardIndex] = useState(0);
+	const [selectedCardIndexes, setSelectedCardIndexes] = useState<ReadonlySet<number>>(() => new Set());
+	const capabilities = useTerminalCapabilities()
 
-	const activate = (button: ButtonConfig) => {
-		setFocusedIndex(buttons.indexOf(button));
-		setMessage(button.action);
-	};
+	const canRenderImages = capabilities?.supportsITerm2Graphics || capabilities?.supportsKittyGraphics || capabilities?.supportsSixelGraphics;
+
+	const moveActiveCard = useCallback((delta: number) => {
+		setActiveCardIndex(index => (index + delta + displayedCards.length) % displayedCards.length);
+	}, []);
+
+	const toggleSelectedCard = useCallback((index: number) => {
+		setSelectedCardIndexes(currentIndexes => {
+			const nextIndexes = new Set(currentIndexes);
+
+			if (nextIndexes.has(index)) {
+				nextIndexes.delete(index);
+			} else {
+				nextIndexes.add(index);
+			}
+
+			return nextIndexes;
+		});
+	}, []);
 
 	useInput(
 		(input, key) => {
@@ -45,51 +89,56 @@ function App() {
 				return;
 			}
 
-			if (key.downArrow || key.tab) {
-				setFocusedIndex(index => (index + 1) % buttons.length);
+			if (key.rightArrow || key.downArrow || key.tab) {
+				moveActiveCard(1);
 				return;
 			}
 
-			if (key.upArrow) {
-				setFocusedIndex(index => (index - 1 + buttons.length) % buttons.length);
+			if (key.leftArrow || key.upArrow) {
+				moveActiveCard(-1);
 				return;
 			}
 
-			if (key.return || input === ' ') {
-				activate(buttons[focusedIndex]);
+			if (input === ' ') {
+				toggleSelectedCard(activeCardIndex);
 			}
 		},
 		{isActive: canUseRawInput},
 	);
 
 	const handleMouseClick = useCallback((click: MouseClick) => {
-		const button = buttons.find(candidate => candidate.row === click.y && click.x >= 1 && click.x <= 12);
-
-		if (button) {
-			activate(button);
+		if (click.y < firstCardRow || click.y >= firstCardRow + cardHeight + 2) {
+			return;
 		}
-	}, []);
+
+		const cardStride = cardOuterWidth + cardSpacing;
+		const clickedIndex = Math.floor((click.x - firstCardColumn) / cardStride);
+		const clickedCardStart = firstCardColumn + clickedIndex * cardStride;
+		const clickedInsideCard =
+			clickedIndex >= 0 &&
+			clickedIndex < displayedCards.length &&
+			click.x >= clickedCardStart &&
+			click.x < clickedCardStart + cardOuterWidth;
+
+		if (clickedInsideCard) {
+			setActiveCardIndex(clickedIndex);
+			toggleSelectedCard(clickedIndex);
+		}
+	}, [toggleSelectedCard]);
 
 	useMouse(handleMouseClick);
 
 	return (
 		<Box flexDirection="column">
 			<Text bold>Video Poker CLI</Text>
-			<Text dimColor>PNG card preview from src/assets/cards.</Text>
+			<Text dimColor>Use arrow keys to move, space to select, q to quit.</Text>
+			{!canRenderImages && <Text>Your terminal does not support images!</Text>}
 			<Box marginTop={1}>
-				<CardImages />
+				<CardImages
+					activeIndex={activeCardIndex}
+					selectedIndexes={selectedCardIndexes}
+				/>
 			</Box>
-			{/* <Box flexDirection="column" marginTop={1}>
-				{buttons.map((button, index) => (
-					<ExampleButton key={button.id} focused={focusedIndex === index} label={button.label} />
-				))}
-			</Box> */}
-			{/* <Box flexDirection="column" marginTop={1}>
-				<Text>
-					Last action: <Text color="green">{message}</Text>
-				</Text>
-				<Text dimColor>Use up/down, tab, enter, space, or click a button. Press q or escape to quit.</Text>
-			</Box> */}
 		</Box>
 	);
 }
