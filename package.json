@@ -4,7 +4,11 @@
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "video-poker": "dist/cli/cli.js"
+  },
   "scripts": {
+    "dev": "pnpm build && node dist/cli/cli.js",
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
@@ -26,6 +30,8 @@
     "typescript": "^6.0.3"
   },
   "devDependencies": {
+    "@types/node": "^25.7.0",
+    "@types/react": "^19.2.14",
     "vitest": "^4.1.6"
   }
 }
