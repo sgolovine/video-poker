@@ -351,23 +351,20 @@ Minimum required test groups:
 
 Required concrete hand-evaluation test cases:
 
-| Final Hand | Expected Rank | Notes |
+Each hand rank must have at least two positive cases that evaluate to that rank and at least three negative cases that are close enough to catch common evaluator mistakes. Negative cases must assert the actual expected rank shown below, not only that the hand is "not" the target rank.
+
+| Target Rank | Correct Cases | Incorrect Cases |
 | --- | --- | --- |
-| `10H JH QH KH AH` | `royalFlush` | Royal flush, high ace, same suit |
-| `AH 2H 3H 4H 5H` | `straightFlush` | Low ace straight flush, not royal |
-| `9C 10C JC QC KC` | `straightFlush` | Non-royal high straight flush |
-| `7C 7D 7H 7S 2C` | `fourOfAKind` | Four matching ranks |
-| `KC KD KH 4S 4D` | `fullHouse` | Three plus pair |
-| `2S 5S 8S JS KS` | `flush` | Flush that is not straight |
-| `AC 2D 3H 4S 5C` | `straight` | Low ace mixed suits |
-| `10C JD QH KS AC` | `straight` | High ace mixed suits |
-| `9C 10D JH QS KC` | `straight` | King-high mixed-suit straight |
-| `5C 5D 5S 9H QC` | `threeOfAKind` | Rank counts `3,1,1` |
-| `3C 3D QH QS 8C` | `twoPair` | Rank counts `2,2,1` |
-| `JC JD 2H 7S 9C` | `jacksOrBetter` | Paying pair |
-| `AC AD 2H 7S 9C` | `jacksOrBetter` | Ace pair pays |
-| `10C 10D 2H 7S 9C` | `nothing` | Tens or lower do not pay |
-| `2C 5D 8H JS AC` | `nothing` | No pair, no straight, no flush |
+| `royalFlush` | `10H JH QH KH AH` -> `royalFlush`<br>`10S JS QS KS AS` -> `royalFlush` | `9H 10H JH QH KH` -> `straightFlush`<br>`10H JH QH KH AD` -> `straight`<br>`9H 10H JH QH AH` -> `flush` |
+| `straightFlush` | `AH 2H 3H 4H 5H` -> `straightFlush`<br>`6C 7C 8C 9C 10C` -> `straightFlush` | `10H JH QH KH AH` -> `royalFlush`<br>`6C 7C 8C 9C JD` -> `straight`<br>`2S 5S 8S JS KS` -> `flush` |
+| `fourOfAKind` | `7C 7D 7H 7S 2C` -> `fourOfAKind`<br>`AC AD AH AS KD` -> `fourOfAKind` | `KC KD KH 4S 4D` -> `fullHouse`<br>`5C 5D 5S 9H QC` -> `threeOfAKind`<br>`3C 3D QH QS 8C` -> `twoPair` |
+| `fullHouse` | `KC KD KH 4S 4D` -> `fullHouse`<br>`2C 2D 2S AH AD` -> `fullHouse` | `7C 7D 7H 7S 2C` -> `fourOfAKind`<br>`KC KD KH 4S 9D` -> `threeOfAKind`<br>`KC KD 4H 4S 9D` -> `twoPair` |
+| `flush` | `2S 5S 8S JS KS` -> `flush`<br>`3D 6D 9D QD AD` -> `flush` | `10H JH QH KH AH` -> `royalFlush`<br>`AH 2H 3H 4H 5H` -> `straightFlush`<br>`2S 5S 8S JD KS` -> `nothing` |
+| `straight` | `AC 2D 3H 4S 5C` -> `straight`<br>`10C JD QH KS AC` -> `straight` | `AH 2H 3H 4H 5H` -> `straightFlush`<br>`10H JH QH KH AH` -> `royalFlush`<br>`AC 2D 3H 4S 6C` -> `nothing` |
+| `threeOfAKind` | `5C 5D 5S 9H QC` -> `threeOfAKind`<br>`AC AD AS 7D 2H` -> `threeOfAKind` | `KC KD KH 4S 4D` -> `fullHouse`<br>`7C 7D 7H 7S 2C` -> `fourOfAKind`<br>`5C 5D 9S 9H QC` -> `twoPair` |
+| `twoPair` | `3C 3D QH QS 8C` -> `twoPair`<br>`AC AD 7H 7S 2D` -> `twoPair` | `KC KD KH 4S 4D` -> `fullHouse`<br>`JC JD 2H 7S 9C` -> `jacksOrBetter`<br>`3C 3D 5H QS 8C` -> `nothing` |
+| `jacksOrBetter` | `JC JD 2H 7S 9C` -> `jacksOrBetter`<br>`AC AD 2H 7S 9C` -> `jacksOrBetter` | `10C 10D 2H 7S 9C` -> `nothing`<br>`JC JD 2H 2S 9C` -> `twoPair`<br>`QH QD QS 7C 2D` -> `threeOfAKind` |
+| `nothing` | `10C 10D 2H 7S 9C` -> `nothing`<br>`2C 5D 8H JS AC` -> `nothing` | `JC JD 2H 7S 9C` -> `jacksOrBetter`<br>`3C 3D QH QS 8C` -> `twoPair`<br>`AC 2D 3H 4S 5C` -> `straight` |
 
 Required public-flow test cases:
 
