@@ -36,12 +36,32 @@ export class JacksOrBetterVideoPokerEngine implements VideoPokerEngine {
   private drawCursor?: number;
   private lastResult?: HandResult;
 
+  /**
+   * @public
+   * @description Creates a Jacks-or-Better engine with validated credits and an optional deterministic RNG.
+   * @param {GameConfig} config - The game configuration.
+   * @param {'JacksOrBetter'} config.variant - The supported game variant.
+   * @param {1} config.minBetCredits - The minimum allowed bet.
+   * @param {5} config.maxBetCredits - The maximum allowed bet.
+   * @param {CreditAmount} config.initialCredits - The starting credit balance.
+   * @param {Rng} [config.rng] - Optional RNG for deterministic shuffles.
+   * @returns {JacksOrBetterVideoPokerEngine} A configured video poker engine instance.
+   * @example
+   * new JacksOrBetterVideoPokerEngine({ variant: 'JacksOrBetter', minBetCredits: 1, maxBetCredits: 5, initialCredits: 100 });
+   */
   constructor(config: GameConfig) {
     validateConfig(config);
     this.credits = config.initialCredits;
     this.rng = config.rng ?? defaultRng();
   }
 
+  /**
+   * @public
+   * @description Returns an immutable snapshot of the current game state.
+   * @returns {GameSnapshot} The current phase, credits, and any phase-specific hand state.
+   * @example
+   * engine.snapshot();
+   */
   snapshot(): GameSnapshot {
     if (this.phase === 'ready') {
       return { phase: 'ready', credits: this.credits };
@@ -61,6 +81,14 @@ export class JacksOrBetterVideoPokerEngine implements VideoPokerEngine {
     };
   }
 
+  /**
+   * @public
+   * @description Adds credits when a hand is not actively dealt.
+   * @param {CreditAmount} amount - The non-negative credit amount to add.
+   * @returns {GameSnapshot} The updated game snapshot.
+   * @example
+   * engine.addCredits(25);
+   */
   addCredits(amount: CreditAmount): GameSnapshot {
     if (this.phase === 'dealt') {
       throw new EngineError('invalidPhase');
@@ -73,6 +101,14 @@ export class JacksOrBetterVideoPokerEngine implements VideoPokerEngine {
     return this.snapshot();
   }
 
+  /**
+   * @public
+   * @description Starts a round by shuffling a fresh deck, taking the bet, and dealing five cards.
+   * @param {CreditAmount} bet - The one-to-five credit bet for the round.
+   * @returns {DealtHand} The dealt hand and remaining credits.
+   * @example
+   * engine.deal(5);
+   */
   deal(bet: CreditAmount): DealtHand {
     if (this.phase === 'dealt') {
       throw new EngineError('invalidPhase');
@@ -99,6 +135,14 @@ export class JacksOrBetterVideoPokerEngine implements VideoPokerEngine {
     return makeDealtHand(this.credits, bet, nextHand);
   }
 
+  /**
+   * @public
+   * @description Completes the current round by replacing unheld cards and settling the payout.
+   * @param {readonly CardIndex[]} heldIndexes - The zero-based card indexes to keep from the dealt hand.
+   * @returns {HandResult} The completed hand result and updated credits.
+   * @example
+   * engine.draw([0, 3]);
+   */
   draw(heldIndexes: readonly CardIndex[]): HandResult {
     if (this.phase !== 'dealt') {
       throw new EngineError('invalidPhase');
@@ -149,6 +193,13 @@ export class JacksOrBetterVideoPokerEngine implements VideoPokerEngine {
     return cloneResult(result);
   }
 
+  /**
+   * @private
+   * @description Returns the active hand or fails if no hand is currently dealt.
+   * @returns {Card[]} The current mutable hand state.
+   * @example
+   * this.requireHand();
+   */
   private requireHand(): Card[] {
     if (!this.hand) {
       throw new EngineError('invalidPhase');
@@ -156,6 +207,13 @@ export class JacksOrBetterVideoPokerEngine implements VideoPokerEngine {
     return this.hand;
   }
 
+  /**
+   * @private
+   * @description Returns the active deck or fails if deck state is unavailable.
+   * @returns {Card[]} The current mutable deck state.
+   * @example
+   * this.requireDeck();
+   */
   private requireDeck(): Card[] {
     if (!this.deck) {
       throw new EngineError('invalidDeck');
@@ -163,6 +221,13 @@ export class JacksOrBetterVideoPokerEngine implements VideoPokerEngine {
     return this.deck;
   }
 
+  /**
+   * @private
+   * @description Returns the most recent completed result or fails if no result exists.
+   * @returns {HandResult} The last completed hand result.
+   * @example
+   * this.requireLastResult();
+   */
   private requireLastResult(): HandResult {
     if (!this.lastResult) {
       throw new EngineError('invalidPhase');

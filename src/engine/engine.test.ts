@@ -14,7 +14,7 @@ import {
   type GameSnapshot,
   type HandRank,
   type Rng,
-} from '../src/index.js';
+} from '../index.js';
 
 function createVideoPokerEngine(config: GameConfig): VideoPokerEngine {
   return new JacksOrBetterVideoPokerEngine(config);

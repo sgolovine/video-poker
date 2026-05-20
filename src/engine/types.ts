@@ -24,6 +24,7 @@ export type HandRank =
   | 'nothing';
 
 export interface Rng {
+  /** Returns an integer in the half-open range [0, maxExclusive). */
   nextInt(maxExclusive: number): number;
 }
 
@@ -63,9 +64,16 @@ export interface HandResult {
 }
 
 export interface VideoPokerEngine {
+  /** Returns the current immutable game snapshot. */
   snapshot(): GameSnapshot;
+
+  /** Adds credits outside an active deal and returns the updated snapshot. */
   addCredits(amount: CreditAmount): GameSnapshot;
+
+  /** Starts a round with a one-to-five credit bet. */
   deal(bet: CreditAmount): DealtHand;
+
+  /** Completes a dealt round while preserving the supplied held card positions. */
   draw(heldIndexes: readonly CardIndex[]): HandResult;
 }
 
@@ -82,6 +90,7 @@ export type EngineErrorCode =
 export class EngineError extends Error {
   readonly code: EngineErrorCode;
 
+  /** Creates an engine error with a stable machine-readable code. */
   constructor(code: EngineErrorCode, message?: string) {
     super(message ?? code);
     this.name = 'EngineError';
