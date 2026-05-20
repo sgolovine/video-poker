@@ -26,8 +26,8 @@
   "type": "module",
   "dependencies": {
     "ink": "^7.0.3",
+    "ink-picture": "^1.3.5",
     "react": "^19.2.6",
-    "terminal-image": "^4.3.0",
     "typescript": "^6.0.3"
   },
   "devDependencies": {
