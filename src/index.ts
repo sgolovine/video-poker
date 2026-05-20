@@ -14,6 +14,6 @@ export {
   type Rng,
   type Suit,
   type VideoPokerEngine,
-} from './engine/index.js';
-export { JacksOrBetterVideoPokerEngine } from './engine/index.js';
-export { PAY_TABLE, RANKS, SUITS, createDeck, evaluateHand, getPayout, shuffleDeck } from './engine/index.js';
+} from './engine/index';
+export { JacksOrBetterVideoPokerEngine } from './engine/index';
+export { PAY_TABLE, RANKS, SUITS, createDeck, evaluateHand, getPayout, shuffleDeck } from './engine/index';

@@ -11,7 +11,7 @@ import {
   type Rank,
   type Rng,
   type Suit,
-} from './types.js';
+} from './types';
 
 export const SUITS: readonly Suit[] = Object.freeze(['clubs', 'diamonds', 'hearts', 'spades']);
 export const RANKS: readonly Rank[] = Object.freeze(['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']);

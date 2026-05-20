@@ -1,4 +1,4 @@
-import { EngineError } from './types.js';
+import { EngineError } from './types';
 import type {
   Card,
   CardIndex,
@@ -10,7 +10,7 @@ import type {
   HandResult,
   Rng,
   VideoPokerEngine,
-} from './types.js';
+} from './types';
 import {
   assertSafeNonNegativeInteger,
   cloneCard,
@@ -24,7 +24,7 @@ import {
   normalizeHeldIndexes,
   shuffleDeck,
   validateConfig,
-} from './util.js';
+} from './util';
 
 export class JacksOrBetterVideoPokerEngine implements VideoPokerEngine {
   private phase: GamePhase = 'ready';
