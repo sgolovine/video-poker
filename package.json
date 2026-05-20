@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "pnpm build && node dist/cli/cli.js",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && rm -rf dist/assets && cp -R src/assets dist/assets",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -27,6 +27,7 @@
   "dependencies": {
     "ink": "^7.0.3",
     "react": "^19.2.6",
+    "terminal-image": "^4.3.0",
     "typescript": "^6.0.3"
   },
   "devDependencies": {

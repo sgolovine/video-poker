@@ -1,10 +1,18 @@
 #!/usr/bin/env node
-import {useCallback, useState} from 'react';
+import {dirname, resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {useCallback, useEffect, useState} from 'react';
 import {Box, Text, render, useApp, useInput, useStdin} from 'ink';
+import terminalImage from 'terminal-image';
 import {buttons} from './config/buttons.js';
 import type {ButtonConfig} from './types/button-config.js';
 import type {MouseClick} from './types/mouse-click.js';
 import {useMouse} from './util/use-mouse.js';
+
+const cliDirectory = dirname(fileURLToPath(import.meta.url));
+const cardAssetDirectory = resolve(cliDirectory, '../assets/cards');
+const cardImageWidth = 24;
+const displayedCardFiles = ['ace_of_spades.png', 'king_of_hearts.png', 'queen_of_diamonds.png'] as const;
 
 function ExampleButton({focused, label}: {focused: boolean; label: string}) {
 	return (
@@ -14,17 +22,59 @@ function ExampleButton({focused, label}: {focused: boolean; label: string}) {
 	);
 }
 
+function combineCardImages(cards: readonly string[]): string {
+	const rows = cards.map(card => card.trimEnd().split('\n'));
+	const height = Math.max(...rows.map(row => row.length));
+
+	return Array.from({length: height}, (_, index) =>
+		rows.map(row => row[index] ?? '').join('  '),
+	).join('\n');
+}
+
+function CardImages({cards}: {cards: readonly string[]}) {
+	if (cards.length === 0) {
+		return <Text dimColor>Loading cards...</Text>;
+	}
+
+	return <Text>{combineCardImages(cards)}</Text>;
+}
+
 function App() {
 	const {exit} = useApp();
 	const {isRawModeSupported} = useStdin();
 	const canUseRawInput = Boolean(process.stdin.isTTY && isRawModeSupported);
 	const [focusedIndex, setFocusedIndex] = useState(0);
 	const [message, setMessage] = useState('Ready');
+	const [cards, setCards] = useState<readonly string[]>([]);
 
 	const activate = (button: ButtonConfig) => {
 		setFocusedIndex(buttons.indexOf(button));
 		setMessage(button.action);
 	};
+
+	useEffect(() => {
+		let active = true;
+
+		const loadCards = async () => {
+			const renderedCards = await Promise.all(
+				displayedCardFiles.map(file => terminalImage.file(resolve(cardAssetDirectory, file), {width: cardImageWidth})),
+			);
+
+			if (active) {
+				setCards(renderedCards);
+			}
+		};
+
+		void loadCards().catch(error => {
+			if (active) {
+				setMessage(error instanceof Error ? error.message : 'Failed to load card images');
+			}
+		});
+
+		return () => {
+			active = false;
+		};
+	}, []);
 
 	useInput(
 		(input, key) => {
@@ -63,7 +113,10 @@ function App() {
 	return (
 		<Box flexDirection="column">
 			<Text bold>Video Poker CLI</Text>
-			<Text dimColor>Ink bootstrap with keyboard and mouse input.</Text>
+			<Text dimColor>PNG card preview from src/assets/cards.</Text>
+			<Box marginTop={1}>
+				<CardImages cards={cards} />
+			</Box>
 			<Box flexDirection="column" marginTop={1}>
 				{buttons.map((button, index) => (
 					<ExampleButton key={button.id} focused={focusedIndex === index} label={button.label} />
