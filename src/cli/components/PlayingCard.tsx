@@ -32,9 +32,6 @@ export function PlayingCard({active, card, index}: PlayingCardProps) {
 					width={cardWidth}
 					height={cardHeight}
 					protocol="auto"
-					// ink-picture's bitmap protocols render alt text as a gray placeholder
-					// after loading; keep it invisible so it does not cover the card art.
-					// alt="Some Alt Text"
 				/>
 			</Box>
 			<Box width={cardWidth} justifyContent="center">

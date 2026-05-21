@@ -20,7 +20,7 @@ export function GameScreen({activeCardIndex, layout, state}: GameScreenProps) {
 
 	return (
 		<Box
-			width={screenWidth}
+			// width={screenWidth}
 			minHeight={Math.max(layout.rows, 36)}
 			flexDirection="column"
 			backgroundColor={theme.screenBackground}
