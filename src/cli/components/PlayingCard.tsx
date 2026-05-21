@@ -1,81 +1,44 @@
 import {Box, Text} from 'ink';
+import Image from 'ink-picture';
 import {theme} from '../theme.js';
 import type {Card} from '../types/ui.js';
-import {getCardLabel, getSuitColor, getSuitSymbol} from '../utils/cards.js';
-import {padCenter, padLeft, padRight} from '../utils/format.js';
+import {getCardImageDimensions, getCardImagePath} from '../utils/card-images.js';
+import {padCenter} from '../utils/format.js';
 
-const cardInnerWidth = 14;
+const cardImageDimensions = getCardImageDimensions();
+const cardWidth = cardImageDimensions.columns;
+const cardInnerWidth = cardWidth;
+const cardHeight = cardImageDimensions.rows;
 
 type PlayingCardProps = {
 	card: Card;
 	index: number;
-	useAsciiSuits: boolean;
 };
 
-export function PlayingCard({card, index, useAsciiSuits}: PlayingCardProps) {
-	const label = getCardLabel(card, useAsciiSuits);
-	const suit = getSuitSymbol(card.suit, useAsciiSuits);
-	const cardColor = getSuitColor(card.suit) === 'red' ? theme.cardTextRed : theme.cardTextBlack;
-
+export function PlayingCard({card, index}: PlayingCardProps) {
 	return (
-		<Box flexDirection="column" width={16}>
+		<Box flexDirection="column" width={cardWidth}>
+			<Box width={cardWidth} justifyContent="center">
+				<Text color={theme.heldText}>{padCenter(card.held && !card.faceDown ? 'HELD' : '', cardInnerWidth)}</Text>
+			</Box>
 			<Box
 				flexDirection="column"
-				width={16}
-				height={9}
-				borderStyle="single"
-				borderColor={theme.cardBorder}
-				backgroundColor={theme.cardBackground}
+				width={cardWidth}
+				height={cardHeight}
 			>
-				{card.faceDown ? (
-					<FaceDownCard />
-				) : (
-					<>
-						<Text color={theme.heldText} backgroundColor={theme.cardBackground}>
-							{padCenter(card.held ? 'HELD' : '', cardInnerWidth)}
-						</Text>
-						<Text color={cardColor} backgroundColor={theme.cardBackground}>
-							{padRight(label, cardInnerWidth)}
-						</Text>
-						<Text backgroundColor={theme.cardBackground}>{' '.repeat(cardInnerWidth)}</Text>
-						<Text color={cardColor} backgroundColor={theme.cardBackground}>
-							{padCenter(suit, cardInnerWidth)}
-						</Text>
-						<Text backgroundColor={theme.cardBackground}>{' '.repeat(cardInnerWidth)}</Text>
-						<Text color={cardColor} backgroundColor={theme.cardBackground}>
-							{padLeft(label, cardInnerWidth)}
-						</Text>
-					</>
-				)}
+				<Image
+					src={getCardImagePath(card)}
+					width={cardWidth}
+					height={cardHeight}
+					protocol="auto"
+					// ink-picture's bitmap protocols render alt text as a gray placeholder
+					// after loading; keep it invisible so it does not cover the card art.
+					// alt="Some Alt Text"
+				/>
 			</Box>
-			<Box width={16} justifyContent="center">
+			<Box width={cardWidth} justifyContent="center">
 				<Text color={theme.secondaryText}>[{index}]</Text>
 			</Box>
 		</Box>
-	);
-}
-
-function FaceDownCard() {
-	return (
-		<>
-			<Text color={theme.cardTextBlack} backgroundColor={theme.cardBackground}>
-				{'░'.repeat(cardInnerWidth)}
-			</Text>
-			<Text color={theme.cardTextBlack} backgroundColor={theme.cardBackground}>
-				{'░'.repeat(cardInnerWidth)}
-			</Text>
-			<Text color={theme.cardTextBlack} backgroundColor={theme.cardBackground}>
-				{padCenter('VIDEO', cardInnerWidth).replaceAll(' ', '░')}
-			</Text>
-			<Text color={theme.cardTextBlack} backgroundColor={theme.cardBackground}>
-				{padCenter('POKER', cardInnerWidth).replaceAll(' ', '░')}
-			</Text>
-			<Text color={theme.cardTextBlack} backgroundColor={theme.cardBackground}>
-				{'░'.repeat(cardInnerWidth)}
-			</Text>
-			<Text color={theme.cardTextBlack} backgroundColor={theme.cardBackground}>
-				{'░'.repeat(cardInnerWidth)}
-			</Text>
-		</>
 	);
 }

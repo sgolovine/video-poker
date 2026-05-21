@@ -43,7 +43,6 @@ export function GameScreen({layout, state}: GameScreenProps) {
 				<CardRow
 					cards={state.cards}
 					gap={layout.cardGap}
-					useAsciiSuits={layout.size === 'small'}
 					wrap={layout.size === 'small'}
 				/>
 			</Box>
