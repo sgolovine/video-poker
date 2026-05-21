@@ -10,11 +10,12 @@ import {ResultBanner} from './ResultBanner.js';
 import {StatusBar} from './StatusBar.js';
 
 type GameScreenProps = {
+	activeCardIndex: number;
 	layout: TerminalLayout;
 	state: PokerUIState;
 };
 
-export function GameScreen({layout, state}: GameScreenProps) {
+export function GameScreen({activeCardIndex, layout, state}: GameScreenProps) {
 	const screenWidth = Math.max(72, Math.min(layout.columns, 120));
 
 	return (
@@ -41,6 +42,7 @@ export function GameScreen({layout, state}: GameScreenProps) {
 
 			<Box marginTop={1} justifyContent={layout.size === 'small' ? 'flex-start' : 'center'}>
 				<CardRow
+					activeIndex={activeCardIndex}
 					cards={state.cards}
 					gap={layout.cardGap}
 					wrap={layout.size === 'small'}

@@ -1,35 +1,69 @@
-import {TerminalInfoContext, TerminalInfoProvider, type TerminalInfo} from 'ink-picture';
+import {useCallback, useState} from 'react';
+import {useApp, useInput, useStdin} from 'ink';
 import {mockPokerUIState} from '../data/mock-ui-state.js';
 import {useTerminalLayout} from '../hooks/use-terminal-layout.js';
+import type {PokerUIState} from '../types/ui.js';
 import {GameScreen} from './GameScreen.js';
 
-const fallbackTerminalInfo: TerminalInfo = {
-	dimensions: {
-		viewportWidth: (process.stdout.columns ?? 80) * 6,
-		viewportHeight: (process.stdout.rows ?? 24) * 12,
-		cellWidth: 6,
-		cellHeight: 12,
-	},
-	capabilities: {
-		supportsUnicode: true,
-		supportsColor: true,
-		supportsSixelGraphics: false,
-		supportsKittyGraphics: false,
-		supportsITerm2Graphics: false,
-	},
-};
-
 export function App() {
+	const {exit} = useApp();
+	const {isRawModeSupported} = useStdin();
 	const layout = useTerminalLayout();
-	const screen = <GameScreen layout={layout} state={mockPokerUIState} />;
+	const [activeCardIndex, setActiveCardIndex] = useState(0);
+	const [state, setState] = useState<PokerUIState>(mockPokerUIState);
 
-	if (process.stdin.isTTY && process.stdout.isTTY) {
-		return <TerminalInfoProvider>{screen}</TerminalInfoProvider>;
-	}
+	const moveActiveCard = useCallback((delta: number) => {
+		setActiveCardIndex(index => (index + delta + state.cards.length) % state.cards.length);
+	}, [state.cards.length]);
+
+	const toggleHeldCard = useCallback((index: number) => {
+		setState(currentState => ({
+			...currentState,
+			cards: currentState.cards.map((card, cardIndex) => (
+				cardIndex === index && !card.faceDown
+					? {...card, held: !card.held}
+					: card
+			)),
+		}));
+	}, []);
+
+	useInput(
+		(input, key) => {
+			if (input === 'q' || key.escape) {
+				exit();
+				return;
+			}
+
+			if (key.rightArrow || key.downArrow || key.tab) {
+				moveActiveCard(1);
+				return;
+			}
+
+			if (key.leftArrow || key.upArrow) {
+				moveActiveCard(-1);
+				return;
+			}
+
+			if (input === ' ') {
+				toggleHeldCard(activeCardIndex);
+				return;
+			}
+
+			const numericInput = Number(input);
+			if (Number.isInteger(numericInput) && numericInput >= 1 && numericInput <= state.cards.length) {
+				const selectedIndex = numericInput - 1;
+				setActiveCardIndex(selectedIndex);
+				toggleHeldCard(selectedIndex);
+			}
+		},
+		{isActive: Boolean(process.stdin.isTTY && isRawModeSupported)},
+	);
 
 	return (
-		<TerminalInfoContext.Provider value={fallbackTerminalInfo}>
-			{screen}
-		</TerminalInfoContext.Provider>
+		<GameScreen
+			activeCardIndex={activeCardIndex}
+			layout={layout}
+			state={state}
+		/>
 	);
 }

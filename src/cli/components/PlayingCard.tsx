@@ -11,11 +11,12 @@ const cardInnerWidth = cardWidth;
 const cardHeight = cardImageDimensions.rows;
 
 type PlayingCardProps = {
+	active: boolean;
 	card: Card;
 	index: number;
 };
 
-export function PlayingCard({card, index}: PlayingCardProps) {
+export function PlayingCard({active, card, index}: PlayingCardProps) {
 	return (
 		<Box flexDirection="column" width={cardWidth}>
 			<Box width={cardWidth} justifyContent="center">
@@ -37,7 +38,7 @@ export function PlayingCard({card, index}: PlayingCardProps) {
 				/>
 			</Box>
 			<Box width={cardWidth} justifyContent="center">
-				<Text color={theme.secondaryText}>[{index}]</Text>
+				<Text color={active ? theme.heldText : theme.secondaryText}>[{index}]</Text>
 			</Box>
 		</Box>
 	);
