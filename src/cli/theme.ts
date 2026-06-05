@@ -5,7 +5,7 @@ export const theme = {
 	activeColumnBackground: 'red',
 	activeColumnText: 'yellow',
 	cardBackground: 'white',
-	cardBorder: 'white',
+	cardBorder: 'red',
 	cardTextBlack: 'black',
 	cardTextRed: 'red',
 	heldText: 'yellow',

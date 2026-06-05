@@ -7,8 +7,9 @@ import {padCenter} from '../utils/format.js';
 
 const cardImageDimensions = getCardImageDimensions();
 const cardWidth = cardImageDimensions.columns;
-const cardInnerWidth = cardWidth;
 const cardHeight = cardImageDimensions.rows;
+const cardFrameWidth = cardWidth + 2;
+const cardFrameHeight = cardHeight + 2;
 
 type PlayingCardProps = {
 	active: boolean;
@@ -18,23 +19,28 @@ type PlayingCardProps = {
 
 export function PlayingCard({active, card, index}: PlayingCardProps) {
 	return (
-		<Box flexDirection="column" width={cardWidth}>
-			<Box width={cardWidth} justifyContent="center">
-				<Text color={theme.heldText}>{padCenter(card.held && !card.faceDown ? 'HELD' : '', cardInnerWidth)}</Text>
+		<Box flexDirection="column" width={cardFrameWidth}>
+			<Box width={cardFrameWidth} justifyContent="center">
+				<Text color={theme.heldText}>{padCenter(card.held && !card.faceDown ? 'HELD' : '', cardFrameWidth)}</Text>
 			</Box>
 			<Box
-				flexDirection="column"
-				width={cardWidth}
-				height={cardHeight}
+				borderColor={theme.cardBorder}
+			borderStyle="bold"
 			>
+				<Box
+				top={2}
+				width={cardFrameWidth}
+				height={cardFrameHeight}
+				>
 				<Image
 					src={getCardImagePath(card)}
 					width={cardWidth}
 					height={cardHeight}
 					protocol="auto"
-				/>
+					/>
+				</Box>
 			</Box>
-			<Box width={cardWidth} justifyContent="center">
+			<Box width={cardFrameWidth} justifyContent="center">
 				<Text color={active ? theme.heldText : theme.secondaryText}>[{index}]</Text>
 			</Box>
 		</Box>
