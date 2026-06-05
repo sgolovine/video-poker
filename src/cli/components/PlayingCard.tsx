@@ -25,18 +25,17 @@ export function PlayingCard({active, card, index}: PlayingCardProps) {
 			</Box>
 			<Box
 				borderColor={theme.cardBorder}
-			borderStyle="bold"
-			>
-				<Box
-				top={2}
+				borderStyle="bold"
 				width={cardFrameWidth}
 				height={cardFrameHeight}
-				>
-				<Image
-					src={getCardImagePath(card)}
-					width={cardWidth}
-					height={cardHeight}
-					protocol="auto"
+			>
+				<Box width={cardWidth} height={cardHeight} marginTop={1} paddingBottom={0}>
+					<Image
+						src={getCardImagePath(card)}
+						width={cardWidth}
+						height={cardHeight}
+						alt=" "
+						protocol="auto"
 					/>
 				</Box>
 			</Box>
