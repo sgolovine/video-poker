@@ -245,6 +245,39 @@
   outline-offset: 4px;
 }
 
+.speed-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.speed-button-label {
+  min-width: 0;
+}
+
+.speed-chevrons {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+.speed-chevron {
+  width: 18px;
+  height: 18px;
+  display: block;
+  fill: #777;
+  flex: 0 0 auto;
+}
+
+.speed-chevron + .speed-chevron {
+  margin-left: -5px;
+}
+
+.speed-chevron.is-active {
+  fill: #ff1d14;
+}
+
 .game-title {
   width: min(1228px, calc(100vw - 396px));
   min-width: 760px;
@@ -359,6 +392,19 @@
     padding: 0 4px;
     font-size: 11px;
     white-space: normal;
+  }
+
+  .speed-button {
+    gap: 3px;
+  }
+
+  .speed-chevron {
+    width: 14px;
+    height: 14px;
+  }
+
+  .speed-chevron + .speed-chevron {
+    margin-left: -6px;
   }
 
   .game-title {

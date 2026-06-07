@@ -4,9 +4,12 @@ import { GameMeters } from './components/GameMeters';
 import { PayTable } from './components/PayTable';
 import { useVideoPoker } from './hooks/useVideoPoker';
 import { getCardImage } from './lib/cardAssets';
+import { useUserSettingsStore } from './stores/userSettings';
 import './App.css';
 
 function App() {
+  const speed = useUserSettingsStore((state) => state.speed);
+  const cycleSpeed = useUserSettingsStore((state) => state.cycleSpeed);
   const {
     bet,
     credits,
@@ -15,6 +18,7 @@ function App() {
     phase,
     visibleHand,
     canDeal,
+    inputLocked,
     changeBet,
     deal,
     draw,
@@ -57,7 +61,17 @@ function App() {
 
         <footer className="console">
           <GameMeters credits={credits} bet={bet} payout={lastResult?.payout ?? 0} />
-          <BetControls bet={bet} canDeal={canDeal} phase={phase} onBetChange={changeBet} onDeal={deal} onDraw={draw} />
+          <BetControls
+            bet={bet}
+            canDeal={canDeal}
+            inputLocked={inputLocked}
+            phase={phase}
+            speed={speed}
+            onBetChange={changeBet}
+            onDeal={deal}
+            onDraw={draw}
+            onSpeedChange={cycleSpeed}
+          />
           <div className="game-title">JACKS OR BETTER</div>
         </footer>
       </section>
