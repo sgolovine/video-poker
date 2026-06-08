@@ -66,6 +66,7 @@
 body {
   margin: 0;
   min-width: 320px;
+  background-color: #000099;
 }
 
 button,
