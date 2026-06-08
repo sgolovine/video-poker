@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { JacksOrBetterVideoPokerEngine, type Card, type CardIndex, type GameSnapshot, type HandRank, type PayTableConfig } from '../engine';
+import {
+  JacksOrBetterVideoPokerEngine,
+  type Card,
+  type CardIndex,
+  type GameSnapshot,
+  type HandRank,
+  type PayTableConfig,
+} from '../engine';
 import { HAND_LABELS } from '../data/payTable';
 import { useUserSettingsStore, type GameSpeed } from '../stores/userSettings';
 
@@ -39,14 +46,13 @@ export function useVideoPoker() {
   const engineRef = useRef<JacksOrBetterVideoPokerEngine | undefined>(undefined);
 
   if (!engineRef.current) {
-    engineRef.current =
-      new JacksOrBetterVideoPokerEngine({
-        variant: 'JacksOrBetter',
-        minBetCredits: 1,
-        maxBetCredits: 5,
-        initialCredits: balance,
-        payTable: pays,
-      });
+    engineRef.current = new JacksOrBetterVideoPokerEngine({
+      variant: 'JacksOrBetter',
+      minBetCredits: 1,
+      maxBetCredits: 5,
+      initialCredits: balance,
+      payTable: pays,
+    });
   }
 
   const engine = engineRef.current;
@@ -131,13 +137,16 @@ export function useVideoPoker() {
     lockForAnimation(Math.max(cardAnimationMs, payTableAnimationMs));
 
     hand.forEach((card, index) => {
-      queueTimer(() => {
-        setVisibleHand((current) => {
-          const nextHand = [...current];
-          nextHand[index] = card;
-          return nextHand;
-        });
-      }, timing.cardDelayMs * (index + 1));
+      queueTimer(
+        () => {
+          setVisibleHand((current) => {
+            const nextHand = [...current];
+            nextHand[index] = card;
+            return nextHand;
+          });
+        },
+        timing.cardDelayMs * (index + 1),
+      );
     });
 
     Array.from({ length: PAY_TABLE_COLUMN_COUNT }, (_, index) => index + 1).forEach((column) => {
@@ -161,13 +170,16 @@ export function useVideoPoker() {
     lockForAnimation(timing.cardDelayMs * drawIndexes.length + timing.nextHandDelayMs);
 
     drawIndexes.forEach((cardIndex, revealIndex) => {
-      queueTimer(() => {
-        setVisibleHand((current) => {
-          const nextHand = [...current];
-          nextHand[cardIndex] = finalHand[cardIndex];
-          return nextHand;
-        });
-      }, timing.cardDelayMs * (revealIndex + 1));
+      queueTimer(
+        () => {
+          setVisibleHand((current) => {
+            const nextHand = [...current];
+            nextHand[cardIndex] = finalHand[cardIndex];
+            return nextHand;
+          });
+        },
+        timing.cardDelayMs * (revealIndex + 1),
+      );
     });
   }
 
@@ -205,7 +217,9 @@ export function useVideoPoker() {
     if (phase !== 'dealt' || inputLocked) {
       return;
     }
-    setHeldIndexes((current) => (current.includes(index) ? current.filter((value) => value !== index) : [...current, index]));
+    setHeldIndexes((current) =>
+      current.includes(index) ? current.filter((value) => value !== index) : [...current, index],
+    );
   }
 
   function holdCard(index: number) {

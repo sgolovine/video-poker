@@ -22,7 +22,6 @@ function createVideoPokerEngine(config: GameConfig): VideoPokerEngine {
   return new JacksOrBetterVideoPokerEngine(config);
 }
 
-
 class ScriptedRng implements Rng {
   readonly maxExclusiveCalls: number[] = [];
   private cursor = 0;
@@ -511,13 +510,7 @@ describe('public engine flow', () => {
     const partialDeal = partial.deal(1);
     const result = partial.draw([4, 1]);
     expect(result.heldIndexes).toEqual([1, 4]);
-    expect(result.finalHand).toEqual([
-      prefix[5],
-      partialDeal.hand[1],
-      prefix[6],
-      prefix[7],
-      partialDeal.hand[4],
-    ]);
+    expect(result.finalHand).toEqual([prefix[5], partialDeal.hand[1], prefix[6], prefix[7], partialDeal.hand[4]]);
   });
 
   it('validates held indexes and leaves state unchanged after failures', () => {
@@ -557,26 +550,23 @@ describe('public engine flow', () => {
     ['JC JD 2H 7S 9C', 100, 5, 5, 100, 0],
     ['3C 3D QH QS 8C', 100, 5, 10, 105, 5],
     ['10H JH QH KH AH', 100, 5, 4000, 4095, 3995],
-  ])(
-    'settles a completed %s public round with gross payout semantics',
-    (finalHandText, initialCredits, bet, payout, endingCredits, netCredits) => {
-      const engine = createVideoPokerEngine({
-        variant: 'JacksOrBetter',
-        minBetCredits: 1,
-        maxBetCredits: 5,
-        initialCredits,
-        rng: rngForFinalDeck(hand(finalHandText)),
-      });
+  ])('settles a completed %s public round with gross payout semantics', (finalHandText, initialCredits, bet, payout, endingCredits, netCredits) => {
+    const engine = createVideoPokerEngine({
+      variant: 'JacksOrBetter',
+      minBetCredits: 1,
+      maxBetCredits: 5,
+      initialCredits,
+      rng: rngForFinalDeck(hand(finalHandText)),
+    });
 
-      const dealt = engine.deal(bet);
-      expect(dealt.credits).toBe(initialCredits - bet);
-      const result = engine.draw([0, 1, 2, 3, 4]);
+    const dealt = engine.deal(bet);
+    expect(dealt.credits).toBe(initialCredits - bet);
+    const result = engine.draw([0, 1, 2, 3, 4]);
 
-      expect(result.payout).toBe(payout);
-      expect(result.credits).toBe(endingCredits);
-      expect(result.netCredits).toBe(netCredits);
-    },
-  );
+    expect(result.payout).toBe(payout);
+    expect(result.credits).toBe(endingCredits);
+    expect(result.netCredits).toBe(netCredits);
+  });
 
   it('preserves completed result after adding credits and clears it on the next deal', () => {
     const engine = createVideoPokerEngine({

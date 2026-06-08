@@ -36,7 +36,15 @@ export function GameMeters({ credits, bet, payout }: GameMetersProps) {
   );
 }
 
-function Meter({ align, label, value }: { readonly align: 'start' | 'center' | 'end'; readonly label: string; readonly value: number }) {
+function Meter({
+  align,
+  label,
+  value,
+}: {
+  readonly align: 'start' | 'center' | 'end';
+  readonly label: string;
+  readonly value: number;
+}) {
   const alignClassName =
     align === 'start'
       ? 'justify-self-start text-left'
@@ -45,12 +53,7 @@ function Meter({ align, label, value }: { readonly align: 'start' | 'center' | '
         : 'justify-self-end text-right';
 
   return (
-    <div
-      className={[
-        'grid gap-0 text-white',
-        alignClassName,
-      ].join(' ')}
-    >
+    <div className={['grid gap-0 text-white', alignClassName].join(' ')}>
       <span className="block text-[28px] leading-[0.95] font-bold max-[760px]:text-base">{label}</span>
       <strong className="block text-[31px] leading-[0.95] font-bold max-[760px]:text-lg">
         <NumberFlow

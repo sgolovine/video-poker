@@ -266,10 +266,15 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
             <section className="grid gap-3" aria-labelledby="balance-settings-title">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div className="grid gap-1">
-                  <h2 id="balance-settings-title" className="text-base leading-none font-black text-[var(--settings-accent)]">
+                  <h2
+                    id="balance-settings-title"
+                    className="text-base leading-none font-black text-[var(--settings-accent)]"
+                  >
                     Bank Balance
                   </h2>
-                  <p className="text-sm text-[var(--settings-secondary-text)]">Set the available credits on the meter.</p>
+                  <p className="text-sm text-[var(--settings-secondary-text)]">
+                    Set the available credits on the meter.
+                  </p>
                 </div>
                 <Button
                   type="button"
@@ -300,10 +305,15 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
             <section className="grid gap-3" aria-labelledby="paytable-settings-title">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div className="grid gap-1">
-                  <h2 id="paytable-settings-title" className="text-base leading-none font-black text-[var(--settings-accent)]">
+                  <h2
+                    id="paytable-settings-title"
+                    className="text-base leading-none font-black text-[var(--settings-accent)]"
+                  >
                     Paytables
                   </h2>
-                  <p className="text-sm text-[var(--settings-secondary-text)]">Edit payouts for one through five credits.</p>
+                  <p className="text-sm text-[var(--settings-secondary-text)]">
+                    Edit payouts for one through five credits.
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button
@@ -327,7 +337,9 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
 
               <div className="overflow-x-auto border border-[var(--settings-border)]">
                 <div className="grid min-w-[650px] grid-cols-[minmax(180px,1.4fr)_repeat(5,minmax(72px,1fr))] bg-[var(--settings-table)] text-sm">
-                  <div className="border-r border-b border-[var(--settings-border)] px-2 py-2 font-black text-[var(--settings-accent)]">Hand</div>
+                  <div className="border-r border-b border-[var(--settings-border)] px-2 py-2 font-black text-[var(--settings-accent)]">
+                    Hand
+                  </div>
                   {[1, 2, 3, 4, 5].map((bet) => (
                     <div
                       key={bet}
@@ -359,9 +371,15 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
               </div>
             </section>
 
-            <section className="grid gap-3 border-t border-[var(--settings-border)] pt-5" aria-labelledby="storage-settings-title">
+            <section
+              className="grid gap-3 border-t border-[var(--settings-border)] pt-5"
+              aria-labelledby="storage-settings-title"
+            >
               <div className="grid gap-1">
-                <h2 id="storage-settings-title" className="text-base leading-none font-black text-[var(--settings-accent)]">
+                <h2
+                  id="storage-settings-title"
+                  className="text-base leading-none font-black text-[var(--settings-accent)]"
+                >
                   Local Storage
                 </h2>
                 <p className="text-sm text-[var(--settings-secondary-text)]">
@@ -373,9 +391,15 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
               </Button>
             </section>
 
-            <section className="grid gap-3 border-t border-[var(--settings-border)] pt-5" aria-labelledby="display-settings-title">
+            <section
+              className="grid gap-3 border-t border-[var(--settings-border)] pt-5"
+              aria-labelledby="display-settings-title"
+            >
               <div className="grid gap-1">
-                <h2 id="display-settings-title" className="text-base leading-none font-black text-[var(--settings-accent)]">
+                <h2
+                  id="display-settings-title"
+                  className="text-base leading-none font-black text-[var(--settings-accent)]"
+                >
                   Display
                 </h2>
                 <p className="text-sm text-[var(--settings-secondary-text)]">Control on-screen game hints.</p>
@@ -391,7 +415,10 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
               </label>
             </section>
 
-            <section className="grid gap-3 border-t border-[var(--settings-border)] pt-5" aria-labelledby="app-settings-title">
+            <section
+              className="grid gap-3 border-t border-[var(--settings-border)] pt-5"
+              aria-labelledby="app-settings-title"
+            >
               <div className="grid gap-1">
                 <h2 id="app-settings-title" className="text-base leading-none font-black text-[var(--settings-accent)]">
                   App
@@ -450,7 +477,9 @@ function PayTableRow({
 }) {
   return (
     <>
-      <div className="border-r border-b border-[var(--settings-border)] px-2 py-2 font-black text-[var(--settings-accent)]">{HAND_LABELS[rank]}</div>
+      <div className="border-r border-b border-[var(--settings-border)] px-2 py-2 font-black text-[var(--settings-accent)]">
+        {HAND_LABELS[rank]}
+      </div>
       {row.map((payout, index) => (
         <div key={index} className="border-r border-b border-[var(--settings-border)] p-1 last:border-r-0">
           <Input
