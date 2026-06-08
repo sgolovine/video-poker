@@ -6,13 +6,20 @@ interface CardSlotProps {
   readonly imageUrl: string;
   readonly held: boolean;
   readonly selected: boolean;
+  readonly showMouseOutline: boolean;
   readonly shortcut: string;
   readonly disabled: boolean;
   readonly onToggle: () => void;
 }
 
-export function CardSlot({ card, imageUrl, held, selected, shortcut, disabled, onToggle }: CardSlotProps) {
+export function CardSlot({ card, imageUrl, held, selected, showMouseOutline, shortcut, disabled, onToggle }: CardSlotProps) {
   const label = card ? `${card.rank} of ${card.suit}` : 'Card back';
+  const buttonClassName = [
+    'card-slot group grid grid-rows-[32px_auto] gap-1.5 border-0 bg-transparent p-0 text-inherit outline-offset-8 focus-visible:outline-4 focus-visible:outline-[#ffff2f] disabled:cursor-default enabled:cursor-pointer',
+    showMouseOutline
+      ? "hover:enabled:[&:not([aria-pressed='true'])_img]:ring-4 hover:enabled:[&:not([aria-pressed='true'])_img]:ring-[#ffff2f] hover:enabled:[&:not([aria-pressed='true'])_img]:ring-offset-4 hover:enabled:[&:not([aria-pressed='true'])_img]:ring-offset-[#000099] max-[760px]:hover:enabled:[&:not([aria-pressed='true'])_img]:ring-2 max-[760px]:hover:enabled:[&:not([aria-pressed='true'])_img]:ring-offset-2"
+      : '',
+  ].join(' ');
   const imageClassName = [
     'aspect-[169/244] w-full rounded-[11px] object-contain [filter:drop-shadow(2px_2px_0_#000)_drop-shadow(0_3px_0_#000)] max-[760px]:rounded-md',
     held
@@ -24,7 +31,7 @@ export function CardSlot({ card, imageUrl, held, selected, shortcut, disabled, o
   return (
     <button
       type="button"
-      className="card-slot group grid grid-rows-[32px_auto] gap-1.5 border-0 bg-transparent p-0 text-inherit outline-offset-8 hover:enabled:[&:not([aria-pressed='true'])_img]:ring-4 hover:enabled:[&:not([aria-pressed='true'])_img]:ring-[#ffff2f] hover:enabled:[&:not([aria-pressed='true'])_img]:ring-offset-4 hover:enabled:[&:not([aria-pressed='true'])_img]:ring-offset-[#000099] focus-visible:outline-4 focus-visible:outline-[#ffff2f] disabled:cursor-default enabled:cursor-pointer max-[760px]:hover:enabled:[&:not([aria-pressed='true'])_img]:ring-2 max-[760px]:hover:enabled:[&:not([aria-pressed='true'])_img]:ring-offset-2"
+      className={buttonClassName}
       disabled={disabled}
       aria-pressed={held}
       aria-current={selected ? 'true' : undefined}

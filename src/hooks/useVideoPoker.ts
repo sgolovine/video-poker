@@ -29,10 +29,6 @@ const SPEED_TIMINGS: Readonly<Record<GameSpeed, SpeedTiming>> = {
     cardDelayMs: 110,
     nextHandDelayMs: 180,
   },
-  turbo: {
-    cardDelayMs: 35,
-    nextHandDelayMs: 40,
-  },
 };
 
 export function useVideoPoker() {

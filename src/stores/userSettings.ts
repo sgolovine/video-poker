@@ -2,9 +2,10 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { PAY_TABLE, clonePayTable, type CreditAmount, type HandRank, type PayTableConfig } from '../engine';
 
-export const GAME_SPEEDS = ['slow', 'medium', 'fast', 'turbo'] as const;
+export const GAME_SPEEDS = ['slow', 'medium', 'fast'] as const;
 export const DEFAULT_BALANCE = 100;
 export const DEFAULT_PAYS = clonePayTable(PAY_TABLE);
+const DEFAULT_SPEED: GameSpeed = 'medium';
 
 export type GameSpeed = (typeof GAME_SPEEDS)[number];
 
@@ -25,10 +26,14 @@ function assertBalance(balance: CreditAmount): void {
   }
 }
 
+function isGameSpeed(value: unknown): value is GameSpeed {
+  return GAME_SPEEDS.includes(value as GameSpeed);
+}
+
 export const useUserSettingsStore = create<UserSettingsState>()(
   persist(
     (set, get) => ({
-      speed: 'medium',
+      speed: DEFAULT_SPEED,
       balance: DEFAULT_BALANCE,
       pays: DEFAULT_PAYS,
       setSpeed: (speed) => set({ speed }),
@@ -56,6 +61,15 @@ export const useUserSettingsStore = create<UserSettingsState>()(
     }),
     {
       name: 'video-poker-user-settings',
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<UserSettingsState> | undefined;
+
+        return {
+          ...currentState,
+          ...persisted,
+          speed: isGameSpeed(persisted?.speed) ? persisted.speed : DEFAULT_SPEED,
+        };
+      },
       partialize: (state) => ({ speed: state.speed, balance: state.balance, pays: state.pays }),
     },
   ),

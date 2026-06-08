@@ -18,14 +18,24 @@ interface BetControlsProps {
   readonly onSpeedChange: () => void;
 }
 
-function ShortcutButtonContent({ label, shortcut,disabled }: { label: string; shortcut: string; disabled: boolean }) {
+function ShortcutBadge({ shortcut, disabled }: { shortcut: string; disabled: boolean }) {
+  if (disabled) {
+    return null;
+  }
+
   return (
-    <span className="grid w-full min-w-0 grid-cols-[1fr_auto] items-center gap-1.5 max-[760px]:gap-1">
+    <Kbd className="absolute -top-2 -right-2 z-10 border border-[#cab726] bg-[#fff49a] font-[Arial,Helvetica,sans-serif] text-[11px] font-black text-[#070707] max-[760px]:-top-1.5 max-[760px]:-right-1.5 max-[760px]:h-4 max-[760px]:min-w-4 max-[760px]:px-0.5 max-[760px]:text-[9px]">
+      {shortcut}
+    </Kbd>
+  );
+}
+
+function ShortcutButtonContent({ label, shortcut, disabled }: { label: string; shortcut: string; disabled: boolean }) {
+  return (
+    <>
       <span className="min-w-0">{label}</span>
-      {!disabled && (<Kbd className="border border-[#cab726] bg-[#fff49a] font-[Arial,Helvetica,sans-serif] text-[11px] font-black text-[#070707] max-[760px]:h-4 max-[760px]:min-w-4 max-[760px]:px-0.5 max-[760px]:text-[9px]">
-        {shortcut}
-      </Kbd>)}
-    </span>
+      <ShortcutBadge shortcut={shortcut} disabled={disabled} />
+    </>
   );
 }
 
@@ -50,7 +60,7 @@ export function BetControls({
   const canBetUp = !inputLocked && !isDealt && bet < 5;
   const canPlay = isDealt ? !inputLocked : canDeal;
   const buttonClassName =
-    "h-[62px] cursor-pointer whitespace-nowrap border-[3px] border-[#cab726] border-t-[#fff7a5] border-l-[#fff7a5] bg-[#ffe63d] px-3 font-[Arial,Helvetica,sans-serif] text-[clamp(14px,1.18vw,22px)] leading-none font-black text-[#070707] [box-shadow:inset_-4px_-4px_0_#ad8f18,inset_3px_3px_0_#fff49a,3px_3px_0_#281900] transition-[transform,box-shadow,border-color] duration-75 ease-out enabled:active:translate-x-[3px] enabled:active:translate-y-[3px] enabled:active:border-[#ad8f18] enabled:active:border-t-[#8d7412] enabled:active:border-l-[#8d7412] enabled:active:[box-shadow:inset_3px_3px_0_#ad8f18,inset_-2px_-2px_0_#fff49a,0_0_0_#281900] focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-white disabled:cursor-default disabled:border-[#686868] disabled:border-t-[#9a9a9a] disabled:border-l-[#9a9a9a] disabled:bg-[#777] disabled:text-transparent disabled:opacity-100 disabled:[box-shadow:inset_-4px_-4px_0_#565656,inset_3px_3px_0_#a3a3a3,3px_3px_0_#281900] max-[1180px]:text-[15px] max-[760px]:h-12 max-[760px]:whitespace-normal max-[760px]:px-1 max-[760px]:text-[11px]";
+    "relative h-[62px] cursor-pointer whitespace-nowrap border-[3px] border-[#cab726] border-t-[#fff7a5] border-l-[#fff7a5] bg-[#ffe63d] px-3 font-[Arial,Helvetica,sans-serif] text-[clamp(14px,1.18vw,22px)] leading-none font-black text-[#070707] [box-shadow:inset_-4px_-4px_0_#ad8f18,inset_3px_3px_0_#fff49a,3px_3px_0_#281900] transition-[transform,box-shadow,border-color] duration-75 ease-out enabled:active:translate-x-[3px] enabled:active:translate-y-[3px] enabled:active:border-[#ad8f18] enabled:active:border-t-[#8d7412] enabled:active:border-l-[#8d7412] enabled:active:[box-shadow:inset_3px_3px_0_#ad8f18,inset_-2px_-2px_0_#fff49a,0_0_0_#281900] focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-white disabled:cursor-default disabled:border-[#686868] disabled:border-t-[#9a9a9a] disabled:border-l-[#9a9a9a] disabled:bg-[#777] disabled:text-transparent disabled:opacity-100 disabled:[box-shadow:inset_-4px_-4px_0_#565656,inset_3px_3px_0_#a3a3a3,3px_3px_0_#281900] max-[1180px]:text-[15px] max-[760px]:h-12 max-[760px]:whitespace-normal max-[760px]:px-1 max-[760px]:text-[11px]";
 
   useHotkeys(
     [
@@ -99,9 +109,7 @@ export function BetControls({
             </svg>
           ))}
         </span>
-        <Kbd className="border border-[#cab726] bg-[#fff49a] font-[Arial,Helvetica,sans-serif] text-[11px] font-black text-[#070707] max-[760px]:h-4 max-[760px]:min-w-4 max-[760px]:px-0.5 max-[760px]:text-[9px]">
-          S
-        </Kbd>
+        <ShortcutBadge shortcut="S" disabled={false} />
       </button>
       <button type="button" className={buttonClassName} disabled={!canBetDown} onClick={() => onBetChange(bet - 1)}>
         {<ShortcutButtonContent label="BET DOWN" shortcut="-" disabled={!canBetDown} />}

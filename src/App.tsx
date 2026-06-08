@@ -1,5 +1,5 @@
 import { useHotkeys, type UseHotkeyDefinition } from '@tanstack/react-hotkeys';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BetControls } from './components/BetControls';
 import { CardSlot } from './components/CardSlot';
 import { GameMeters } from './components/GameMeters';
@@ -29,22 +29,44 @@ function App() {
     changeBet,
     deal,
     draw,
-    holdCard,
     replaceMachine,
     toggleHold,
   } = useVideoPoker();
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
+  const [isArrowNavigationActive, setIsArrowNavigationActive] = useState(false);
 
   const statusText =
     phase === 'dealt'
       ? 'SELECT CARDS TO HOLD'
       : lastResult
         ? lastResult.payout > 0
-          ? `${lastResult.label} PAYS ${lastResult.payout}`
+          ? `${lastResult.label}`
           : 'GAME OVER'
         : 'PRESS DEAL';
   const playCreditsBannerText = phase === 'complete' && !inputLocked ? `PLAY ${bet} CREDITS` : undefined;
   const canUseCardShortcuts = phase === 'dealt' && !inputLocked;
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if(event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        setIsArrowNavigationActive(true)
+      }
+
+
+    }
+
+    function handleMouseMove() {
+      setIsArrowNavigationActive(false);
+    }
+
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    window.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
 
   function moveSelectedCard(step: number) {
     if (!canUseCardShortcuts) {
@@ -54,11 +76,13 @@ function App() {
   }
 
   function holdSelectedCard() {
-    holdCard(selectedCardIndex);
+    toggleHold(selectedCardIndex);
+    
   }
 
   function startDeal() {
     setSelectedCardIndex(0);
+    setIsArrowNavigationActive(false);
     deal();
   }
 
@@ -73,7 +97,7 @@ function App() {
         hotkey: `${cardNumber}`,
         callback: () => {
           setSelectedCardIndex(index);
-          holdCard(index);
+          toggleHold(index);
         },
         options: { enabled: canUseCardShortcuts },
       })),
@@ -107,7 +131,8 @@ function App() {
                     card={card}
                     imageUrl={getCardImage(card)}
                     held={heldIndexes.includes(index)}
-                    selected={index === selectedCardIndex}
+                    selected={isArrowNavigationActive && index === selectedCardIndex}
+                    showMouseOutline={!isArrowNavigationActive}
                     shortcut={String(index + 1)}
                     disabled={phase !== 'dealt'}
                     onToggle={() => toggleHold(index)}
