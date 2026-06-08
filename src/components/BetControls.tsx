@@ -1,3 +1,4 @@
+import type React from 'react';
 import type { GamePhase } from '../../engine';
 import { useLayoutStore } from '../stores/layout';
 import { GAME_SPEEDS, type GameSpeed } from '../stores/userSettings';
@@ -11,6 +12,7 @@ interface BetControlsProps {
   readonly onBetChange: (bet: number) => void;
   readonly onDeal: () => void;
   readonly onDraw: () => void;
+  readonly onOptionsRender: (className: string) => React.ReactNode;
   readonly onSpeedChange: () => void;
 }
 
@@ -23,6 +25,7 @@ export function BetControls({
   onBetChange,
   onDeal,
   onDraw,
+  onOptionsRender,
   onSpeedChange,
 }: BetControlsProps) {
   const isPayTableVisible = useLayoutStore((state) => state.isPayTableVisible);
@@ -41,9 +44,7 @@ export function BetControls({
       <button type="button" className={buttonClassName} aria-pressed={isPayTableVisible} onClick={togglePayTable}>
         {isPayTableVisible ? 'HIDE PAYS' : 'SHOW PAYS'}
       </button>
-      <button type="button" className={buttonClassName}>
-        OPTIONS
-      </button>
+      {onOptionsRender(buttonClassName)}
       <button
         type="button"
         className={`${buttonClassName} inline-flex items-center justify-center gap-[7px] max-[760px]:gap-[3px]`}

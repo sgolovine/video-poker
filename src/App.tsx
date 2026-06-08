@@ -2,6 +2,7 @@ import { BetControls } from './components/BetControls';
 import { CardSlot } from './components/CardSlot';
 import { GameMeters } from './components/GameMeters';
 import { PayTable } from './components/PayTable';
+import { SettingsDialog } from './components/SettingsDialog';
 import { useVideoPoker } from './hooks/useVideoPoker';
 import { getCardImage } from './lib/cardAssets';
 import { useLayoutStore } from './stores/layout';
@@ -12,6 +13,7 @@ function App() {
   const speed = useUserSettingsStore((state) => state.speed);
   const pays = useUserSettingsStore((state) => state.pays);
   const cycleSpeed = useUserSettingsStore((state) => state.cycleSpeed);
+  const setPays = useUserSettingsStore((state) => state.setPays);
   const {
     bet,
     activePayTableColumn,
@@ -25,6 +27,7 @@ function App() {
     changeBet,
     deal,
     draw,
+    replaceMachine,
     toggleHold,
   } = useVideoPoker();
 
@@ -81,6 +84,15 @@ function App() {
             onBetChange={changeBet}
             onDeal={deal}
             onDraw={draw}
+            onOptionsRender={(className) => (
+              <SettingsDialog
+                triggerClassName={className}
+                onApplySettings={({ balance, pays: nextPays }) => {
+                  setPays(nextPays);
+                  replaceMachine(balance, nextPays);
+                }}
+              />
+            )}
             onSpeedChange={cycleSpeed}
           />
           <div className="w-[min(1228px,calc(100vw-396px))] min-w-[760px] justify-self-center text-right font-[Arial,Helvetica,sans-serif] text-lg leading-none font-bold text-white [text-shadow:2px_2px_1px_#00195c] max-[1180px]:w-[calc(100vw-32px)] max-[1180px]:min-w-0 max-[760px]:w-full max-[760px]:text-sm">

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { JacksOrBetterVideoPokerEngine, type Card, type CardIndex, type GameSnapshot, type HandRank } from '../../engine';
+import { JacksOrBetterVideoPokerEngine, type Card, type CardIndex, type GameSnapshot, type HandRank, type PayTableConfig } from '../../engine';
 import { HAND_LABELS } from '../data/payTable';
 import { useUserSettingsStore, type GameSpeed } from '../stores/userSettings';
 
@@ -40,16 +40,20 @@ export function useVideoPoker() {
   const balance = useUserSettingsStore((state) => state.balance);
   const pays = useUserSettingsStore((state) => state.pays);
   const setBalance = useUserSettingsStore((state) => state.setBalance);
-  const [engine] = useState(
-    () =>
+  const engineRef = useRef<JacksOrBetterVideoPokerEngine | undefined>(undefined);
+
+  if (!engineRef.current) {
+    engineRef.current =
       new JacksOrBetterVideoPokerEngine({
         variant: 'JacksOrBetter',
         minBetCredits: 1,
         maxBetCredits: 5,
         initialCredits: balance,
         payTable: pays,
-      }),
-  );
+      });
+  }
+
+  const engine = engineRef.current;
   const [snapshot, setSnapshot] = useState<GameSnapshot>(() => engine.snapshot());
   const [bet, setBet] = useState(5);
   const [heldIndexes, setHeldIndexes] = useState<number[]>([]);
@@ -92,6 +96,25 @@ export function useVideoPoker() {
     const nextSnapshot = engine.snapshot();
     setSnapshot(nextSnapshot);
     setBalance(nextSnapshot.credits);
+  }
+
+  function replaceMachine(nextBalance: number, nextPays: PayTableConfig) {
+    clearTimers();
+    const nextEngine = new JacksOrBetterVideoPokerEngine({
+      variant: 'JacksOrBetter',
+      minBetCredits: 1,
+      maxBetCredits: 5,
+      initialCredits: nextBalance,
+      payTable: nextPays,
+    });
+
+    engineRef.current = nextEngine;
+    setBalance(nextBalance);
+    setSnapshot(nextEngine.snapshot());
+    setHeldIndexes([]);
+    setVisibleHand([]);
+    setActivePayTableColumn(bet);
+    setInputLocked(false);
   }
 
   function lockForAnimation(finalDelayMs: number) {
@@ -202,6 +225,7 @@ export function useVideoPoker() {
     changeBet,
     deal,
     draw,
+    replaceMachine,
     toggleHold,
   };
 }
