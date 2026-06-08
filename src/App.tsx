@@ -12,6 +12,7 @@ function App() {
   const cycleSpeed = useUserSettingsStore((state) => state.cycleSpeed);
   const {
     bet,
+    activePayTableColumn,
     credits,
     heldIndexes,
     lastResult,
@@ -37,7 +38,7 @@ function App() {
   return (
     <main className="machine-shell" aria-label="Jacks or Better video poker">
       <section className="cabinet">
-        <PayTable activeBet={bet} lastRank={lastResult?.rank} />
+        <PayTable activeColumn={activePayTableColumn} lastRank={lastResult?.rank} />
 
         <section className="screen" aria-live="polite">
           <div className="message-bar">{statusText}</div>

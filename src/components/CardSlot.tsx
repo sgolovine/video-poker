@@ -13,6 +13,9 @@ export function CardSlot({ card, imageUrl, held, disabled, onToggle }: CardSlotP
 
   return (
     <button type="button" className={held ? 'card-slot is-held' : 'card-slot'} disabled={disabled} aria-pressed={held} onClick={onToggle}>
+      <span className="hold-label" aria-hidden="true">
+        {held ? 'HELD' : ''}
+      </span>
       <img src={imageUrl} alt={label} draggable="false" />
     </button>
   );

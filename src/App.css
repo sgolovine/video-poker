@@ -29,7 +29,7 @@
   grid-template-columns: minmax(270px, 1.9fr) repeat(5, minmax(132px, 1fr));
 }
 
-.pay-row + .pay-row {
+.pay-row+.pay-row {
   border-top: 0;
 }
 
@@ -101,6 +101,8 @@
 
 .card-slot {
   display: grid;
+  grid-template-rows: 32px auto;
+  gap: 6px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -117,26 +119,41 @@
   outline-offset: 8px;
 }
 
+.hold-label {
+  min-height: 32px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow:
+    2px 2px 0 #0036a1,
+    0 0 2px #000;
+}
+
 .card-slot img {
   width: 100%;
   aspect-ratio: 169 / 244;
   object-fit: contain;
   border-radius: 11px;
   filter:
-    drop-shadow(2px 2px 0 #000)
-    drop-shadow(0 3px 0 #000);
-  transform: translateY(0);
-  transition: transform 120ms ease, filter 120ms ease;
+    drop-shadow(2px 2px 0 #000) drop-shadow(0 3px 0 #000);
+  /* transform: translateY(0); */
+  /* transition: transform 120ms ease; */
 }
 
-.card-slot:not(:disabled):hover img,
-.card-slot.is-held img {
-  transform: translateY(-6px);
+.card-slot:not(.is-held):not(:disabled):hover img {
+  /* transform: translateY(-6px); */
   filter:
-    drop-shadow(0 0 0 #ffff2f)
-    drop-shadow(0 0 8px #ffff2f)
-    drop-shadow(2px 2px 0 #000)
-    drop-shadow(0 3px 0 #000);
+    drop-shadow(0 0 0 #ffff2f) drop-shadow(0 0 8px #ffff2f) drop-shadow(2px 2px 0 #000) drop-shadow(0 3px 0 #000);
+}
+
+.card-slot.is-held img {
+  /* transform: translateY(0); */
+  transition: none;
+  filter:
+    drop-shadow(0 0 0 #ffff2f) drop-shadow(0 0 8px #ffff2f) drop-shadow(2px 2px 0 #000) drop-shadow(0 3px 0 #000);
 }
 
 .console {
@@ -270,7 +287,7 @@
   flex: 0 0 auto;
 }
 
-.speed-chevron + .speed-chevron {
+.speed-chevron+.speed-chevron {
   margin-left: -5px;
 }
 
@@ -289,6 +306,7 @@
 }
 
 @media (max-width: 1180px) {
+
   .pay-table,
   .cards,
   .meters,
@@ -403,7 +421,7 @@
     height: 14px;
   }
 
-  .speed-chevron + .speed-chevron {
+  .speed-chevron+.speed-chevron {
     margin-left: -6px;
   }
 

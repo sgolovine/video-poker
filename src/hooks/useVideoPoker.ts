@@ -16,6 +16,7 @@ interface SpeedTiming {
 
 const INITIAL_CREDITS = 100;
 const HAND_SIZE = 5;
+const PAY_TABLE_COLUMN_COUNT = 5;
 const SPEED_TIMINGS: Readonly<Record<GameSpeed, SpeedTiming>> = {
   slow: {
     cardDelayMs: 420,
@@ -50,6 +51,7 @@ export function useVideoPoker() {
   const [bet, setBet] = useState(5);
   const [heldIndexes, setHeldIndexes] = useState<number[]>([]);
   const [visibleHand, setVisibleHand] = useState<readonly (Card | undefined)[]>([]);
+  const [activePayTableColumn, setActivePayTableColumn] = useState<number | undefined>(bet);
   const [inputLocked, setInputLocked] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -92,8 +94,12 @@ export function useVideoPoker() {
   function animateInitialDeal(hand: readonly Card[]) {
     clearTimers();
     const timing = SPEED_TIMINGS[speed];
+    const payTableAnimationMs = timing.cardDelayMs * (PAY_TABLE_COLUMN_COUNT + 1);
+    const cardAnimationMs = timing.cardDelayMs * hand.length + 1;
+
     setVisibleHand(Array<Card | undefined>(HAND_SIZE).fill(undefined));
-    lockForAnimation(timing.cardDelayMs * hand.length + 1);
+    setActivePayTableColumn(undefined);
+    lockForAnimation(Math.max(cardAnimationMs, payTableAnimationMs));
 
     hand.forEach((card, index) => {
       queueTimer(() => {
@@ -104,6 +110,16 @@ export function useVideoPoker() {
         });
       }, timing.cardDelayMs * (index + 1));
     });
+
+    Array.from({ length: PAY_TABLE_COLUMN_COUNT }, (_, index) => index + 1).forEach((column) => {
+      queueTimer(() => {
+        setActivePayTableColumn(column);
+      }, timing.cardDelayMs * column);
+    });
+
+    queueTimer(() => {
+      setActivePayTableColumn(bet);
+    }, payTableAnimationMs);
   }
 
   function animateDraw(finalHand: readonly Card[], heldSet: ReadonlySet<number>) {
@@ -130,7 +146,9 @@ export function useVideoPoker() {
     if (phase === 'dealt' || inputLocked) {
       return;
     }
-    setBet(Math.min(5, Math.max(1, nextBet)));
+    const normalizedBet = Math.min(5, Math.max(1, nextBet));
+    setBet(normalizedBet);
+    setActivePayTableColumn(normalizedBet);
   }
 
   function deal() {
@@ -163,6 +181,7 @@ export function useVideoPoker() {
 
   return {
     bet,
+    activePayTableColumn,
     credits: snapshot.credits,
     heldIndexes,
     lastResult,
