@@ -10,6 +10,7 @@ const appBackgroundColor = '#000099';
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: './',
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },
@@ -25,7 +26,16 @@ export default defineConfig({
     VitePWA({
       injectRegister: false,
       registerType: 'prompt',
-      includeAssets: ['favicon.svg', 'icons.svg'],
+      includeAssets: [
+        'favicon.svg',
+        'icons.svg',
+        'icons/favicon-64.png',
+        'icons/icon-192.png',
+        'icons/icon-512.png',
+        'icons/icon-maskable-512.png',
+        'screenshots/video-poker-wide.png',
+        'screenshots/video-poker-mobile.png',
+      ],
       manifest: {
         name: 'Video Poker',
         short_name: 'Video Poker',
@@ -33,14 +43,46 @@ export default defineConfig({
         theme_color: appBackgroundColor,
         background_color: appBackgroundColor,
         display: 'standalone',
-        scope: '/',
-        start_url: '/',
+        scope: './',
+        start_url: './',
         icons: [
           {
-            src: '/favicon.svg',
+            src: 'favicon.svg',
             sizes: 'any',
             type: 'image/svg+xml',
-            purpose: 'any maskable',
+            purpose: 'any',
+          },
+          {
+            src: 'icons/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: 'icons/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: 'icons/icon-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+        ],
+        screenshots: [
+          {
+            src: 'screenshots/video-poker-wide.png',
+            sizes: '1425x900',
+            type: 'image/png',
+            form_factor: 'wide',
+          },
+          {
+            src: 'screenshots/video-poker-mobile.png',
+            sizes: '390x844',
+            type: 'image/png',
+            form_factor: 'narrow',
           },
         ],
       },
