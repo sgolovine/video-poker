@@ -4,11 +4,13 @@ import { GameMeters } from './components/GameMeters';
 import { PayTable } from './components/PayTable';
 import { useVideoPoker } from './hooks/useVideoPoker';
 import { getCardImage } from './lib/cardAssets';
+import { useLayoutStore } from './stores/layout';
 import { useUserSettingsStore } from './stores/userSettings';
-import './App.css';
 
 function App() {
+  const isPayTableVisible = useLayoutStore((state) => state.isPayTableVisible);
   const speed = useUserSettingsStore((state) => state.speed);
+  const pays = useUserSettingsStore((state) => state.pays);
   const cycleSpeed = useUserSettingsStore((state) => state.cycleSpeed);
   const {
     bet,
@@ -36,13 +38,21 @@ function App() {
         : 'PRESS DEAL';
 
   return (
-    <main className="machine-shell" aria-label="Jacks or Better video poker">
-      <section className="cabinet">
-        <PayTable activeColumn={activePayTableColumn} lastRank={lastResult?.rank} />
+    <main className="grid min-h-svh bg-[#000099] text-[#ffff2f]" aria-label="Jacks or Better video poker">
+      <section
+        className="video-shell grid min-h-svh w-full grid-rows-[auto_1fr_auto] overflow-hidden bg-[#000099] max-[760px]:grid-rows-[auto_auto_auto] max-[760px]:overflow-x-hidden"
+        data-pay-table={isPayTableVisible ? 'visible' : 'hidden'}
+      >
+        {isPayTableVisible ? <PayTable activeColumn={activePayTableColumn} payTable={pays} /> : null}
 
-        <section className="screen" aria-live="polite">
-          <div className="message-bar">{statusText}</div>
-          <div className="cards" aria-label="Current hand">
+        <section className="play-area grid content-start pt-[17px] max-[760px]:pt-3" aria-live="polite">
+          <div className="status-text mb-7 grid min-h-[42px] place-items-center text-center text-[28px] leading-none font-bold text-[#ff1d14] [text-shadow:-2px_-2px_0_#ffff2f,2px_-2px_0_#ffff2f,-2px_2px_0_#ffff2f,2px_2px_0_#ffff2f,3px_3px_0_#6d3600] max-[760px]:mb-4 max-[760px]:min-h-[34px] max-[760px]:text-xl">
+            {statusText}
+          </div>
+          <div
+            className="card-grid grid w-[min(1145px,calc(100vw-440px))] min-w-[700px] grid-cols-5 items-end gap-6 justify-self-center max-[1180px]:w-[calc(100vw-32px)] max-[1180px]:min-w-0 max-[1180px]:gap-3.5 max-[760px]:w-[calc(100vw-16px)] max-[760px]:gap-[7px]"
+            aria-label="Current hand"
+          >
             {Array.from({ length: 5 }, (_, index) => {
               const card = visibleHand[index];
 
@@ -60,7 +70,7 @@ function App() {
           </div>
         </section>
 
-        <footer className="console">
+        <footer className="controls-footer grid grid-rows-[auto_auto_auto] gap-[26px] px-0 pt-[26px] pb-11 max-[760px]:gap-4 max-[760px]:px-2 max-[760px]:pt-5 max-[760px]:pb-6">
           <GameMeters credits={credits} bet={bet} payout={lastResult?.payout ?? 0} />
           <BetControls
             bet={bet}
@@ -73,7 +83,9 @@ function App() {
             onDraw={draw}
             onSpeedChange={cycleSpeed}
           />
-          <div className="game-title">JACKS OR BETTER</div>
+          <div className="w-[min(1228px,calc(100vw-396px))] min-w-[760px] justify-self-center text-right font-[Arial,Helvetica,sans-serif] text-lg leading-none font-bold text-white [text-shadow:2px_2px_1px_#00195c] max-[1180px]:w-[calc(100vw-32px)] max-[1180px]:min-w-0 max-[760px]:w-full max-[760px]:text-sm">
+            JACKS OR BETTER
+          </div>
         </footer>
       </section>
     </main>

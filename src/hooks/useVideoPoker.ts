@@ -14,7 +14,6 @@ interface SpeedTiming {
   readonly nextHandDelayMs: number;
 }
 
-const INITIAL_CREDITS = 100;
 const HAND_SIZE = 5;
 const PAY_TABLE_COLUMN_COUNT = 5;
 const SPEED_TIMINGS: Readonly<Record<GameSpeed, SpeedTiming>> = {
@@ -38,13 +37,17 @@ const SPEED_TIMINGS: Readonly<Record<GameSpeed, SpeedTiming>> = {
 
 export function useVideoPoker() {
   const speed = useUserSettingsStore((state) => state.speed);
+  const balance = useUserSettingsStore((state) => state.balance);
+  const pays = useUserSettingsStore((state) => state.pays);
+  const setBalance = useUserSettingsStore((state) => state.setBalance);
   const [engine] = useState(
     () =>
       new JacksOrBetterVideoPokerEngine({
         variant: 'JacksOrBetter',
         minBetCredits: 1,
         maxBetCredits: 5,
-        initialCredits: INITIAL_CREDITS,
+        initialCredits: balance,
+        payTable: pays,
       }),
   );
   const [snapshot, setSnapshot] = useState<GameSnapshot>(() => engine.snapshot());
@@ -70,6 +73,11 @@ export function useVideoPoker() {
     };
   }, []);
 
+  useEffect(() => {
+    const nextSnapshot = engine.setPayTable(pays);
+    setSnapshot(nextSnapshot);
+  }, [engine, pays]);
+
   function clearTimers() {
     timerRef.current.forEach((timer) => clearTimeout(timer));
     timerRef.current = [];
@@ -81,7 +89,9 @@ export function useVideoPoker() {
   }
 
   function refresh() {
-    setSnapshot(engine.snapshot());
+    const nextSnapshot = engine.snapshot();
+    setSnapshot(nextSnapshot);
+    setBalance(nextSnapshot.credits);
   }
 
   function lockForAnimation(finalDelayMs: number) {

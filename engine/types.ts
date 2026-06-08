@@ -3,6 +3,7 @@ export type Rank = '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 
 
 export type CreditAmount = number;
 export type CardIndex = 0 | 1 | 2 | 3 | 4;
+export type PayoutRow = readonly [CreditAmount, CreditAmount, CreditAmount, CreditAmount, CreditAmount];
 
 export interface Card {
   readonly rank: Rank;
@@ -23,6 +24,8 @@ export type HandRank =
   | 'jacksOrBetter'
   | 'nothing';
 
+export type PayTableConfig = Readonly<Record<HandRank, PayoutRow>>;
+
 export interface Rng {
   /** Returns an integer in the half-open range [0, maxExclusive). */
   nextInt(maxExclusive: number): number;
@@ -33,6 +36,7 @@ export interface GameConfig {
   readonly minBetCredits: 1;
   readonly maxBetCredits: 5;
   readonly initialCredits: CreditAmount;
+  readonly payTable?: PayTableConfig;
   readonly rng?: Rng;
 }
 
@@ -69,6 +73,9 @@ export interface VideoPokerEngine {
 
   /** Adds credits outside an active deal and returns the updated snapshot. */
   addCredits(amount: CreditAmount): GameSnapshot;
+
+  /** Replaces the payout table used when settling future draws. */
+  setPayTable(payTable: PayTableConfig): GameSnapshot;
 
   /** Starts a round with a one-to-five credit bet. */
   deal(bet: CreditAmount): DealtHand;

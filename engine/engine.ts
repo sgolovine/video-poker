@@ -8,6 +8,7 @@ import type {
   GamePhase,
   GameSnapshot,
   HandResult,
+  PayTableConfig,
   Rng,
   VideoPokerEngine,
 } from './types';
@@ -15,6 +16,7 @@ import {
   assertSafeNonNegativeInteger,
   cloneCard,
   cloneCards,
+  clonePayTable,
   cloneResult,
   createDeck,
   defaultRng,
@@ -22,6 +24,7 @@ import {
   getPayout,
   makeDealtHand,
   normalizeHeldIndexes,
+  PAY_TABLE,
   shuffleDeck,
   validateConfig,
 } from './util';
@@ -30,6 +33,7 @@ export class JacksOrBetterVideoPokerEngine implements VideoPokerEngine {
   private phase: GamePhase = 'ready';
   private credits: CreditAmount;
   private readonly rng: Rng;
+  private payTable: PayTableConfig;
   private activeBet?: CreditAmount;
   private hand?: Card[];
   private deck?: Card[];
@@ -52,6 +56,7 @@ export class JacksOrBetterVideoPokerEngine implements VideoPokerEngine {
   constructor(config: GameConfig) {
     validateConfig(config);
     this.credits = config.initialCredits;
+    this.payTable = clonePayTable(config.payTable ?? PAY_TABLE);
     this.rng = config.rng ?? defaultRng();
   }
 
@@ -98,6 +103,19 @@ export class JacksOrBetterVideoPokerEngine implements VideoPokerEngine {
     assertSafeNonNegativeInteger(nextCredits, 'invalidCreditAmount');
 
     this.credits = nextCredits;
+    return this.snapshot();
+  }
+
+  /**
+   * @public
+   * @description Replaces the payout table used when future draws are settled.
+   * @param {PayTableConfig} payTable - A complete payout table for all hand ranks and bet columns.
+   * @returns {GameSnapshot} The unchanged game snapshot after accepting the table.
+   * @example
+   * engine.setPayTable(PAY_TABLE);
+   */
+  setPayTable(payTable: PayTableConfig): GameSnapshot {
+    this.payTable = clonePayTable(payTable);
     return this.snapshot();
   }
 
@@ -167,7 +185,7 @@ export class JacksOrBetterVideoPokerEngine implements VideoPokerEngine {
 
     const handRank = evaluateHand(finalHand);
     const bet = this.activeBet ?? 0;
-    const payout = getPayout(handRank, bet);
+    const payout = getPayout(handRank, bet, this.payTable);
     const nextCredits = this.credits + payout;
     assertSafeNonNegativeInteger(nextCredits, 'invalidCreditAmount');
 

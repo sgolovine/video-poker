@@ -8,6 +8,8 @@ import {
   type GameConfig,
   type HandRank,
   type HandResult,
+  type PayTableConfig,
+  type PayoutRow,
   type Rank,
   type Rng,
   type Suit,
@@ -31,8 +33,6 @@ const RANK_VALUES: Record<Rank, number> = {
   K: 13,
   A: 14,
 };
-
-type PayoutRow = readonly [number, number, number, number, number];
 
 /**
  * @private
@@ -58,6 +58,47 @@ export const PAY_TABLE: Readonly<Record<HandRank, PayoutRow>> = Object.freeze({
   jacksOrBetter: payoutRow([1, 2, 3, 4, 5]),
   nothing: payoutRow([0, 0, 0, 0, 0]),
 });
+
+const PAY_TABLE_RANKS: readonly HandRank[] = Object.freeze([
+  'royalFlush',
+  'straightFlush',
+  'fourOfAKind',
+  'fullHouse',
+  'flush',
+  'straight',
+  'threeOfAKind',
+  'twoPair',
+  'jacksOrBetter',
+  'nothing',
+]);
+
+/**
+ * @public
+ * @description Creates a validated immutable copy of a complete pay table.
+ * @param {PayTableConfig} payTable - The complete payout table for every hand rank.
+ * @returns {PayTableConfig} A frozen detached pay table.
+ * @example
+ * clonePayTable(PAY_TABLE);
+ */
+export function clonePayTable(payTable: PayTableConfig): PayTableConfig {
+  const nextPayTable = {} as Record<HandRank, PayoutRow>;
+
+  for (const rank of PAY_TABLE_RANKS) {
+    const row = payTable[rank];
+    if (!Array.isArray(row) || row.length !== 5) {
+      throw new EngineError('invalidConfig');
+    }
+
+    const nextRow = row.map((payout) => {
+      assertSafeNonNegativeInteger(payout, 'invalidConfig');
+      return payout;
+    }) as [number, number, number, number, number];
+
+    nextPayTable[rank] = payoutRow(nextRow);
+  }
+
+  return Object.freeze(nextPayTable);
+}
 
 /**
  * @public
@@ -337,11 +378,11 @@ export function evaluateHand(cards: readonly Card[]): HandRank {
  * @example
  * getPayout('royalFlush', 5);
  */
-export function getPayout(handRank: HandRank, bet: number): CreditAmount {
+export function getPayout(handRank: HandRank, bet: number, payTable: PayTableConfig = PAY_TABLE): CreditAmount {
   if (!Number.isInteger(bet) || bet < 1 || bet > 5) {
     throw new EngineError('invalidBet');
   }
-  return PAY_TABLE[handRank][bet - 1];
+  return payTable[handRank][bet - 1];
 }
 
 /**
@@ -362,6 +403,9 @@ export function validateConfig(config: GameConfig): void {
     throw new EngineError('invalidConfig');
   }
   assertSafeNonNegativeInteger(config.initialCredits, 'invalidCreditAmount');
+  if (config.payTable) {
+    clonePayTable(config.payTable);
+  }
 }
 
 /**

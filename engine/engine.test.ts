@@ -4,6 +4,8 @@ import {
   GameConfig,
   JacksOrBetterVideoPokerEngine,
   VideoPokerEngine,
+  PAY_TABLE,
+  clonePayTable,
   createDeck,
   evaluateHand,
   getPayout,
@@ -14,7 +16,7 @@ import {
   type GameSnapshot,
   type HandRank,
   type Rng,
-} from '../index';
+} from './index';
 
 function createVideoPokerEngine(config: GameConfig): VideoPokerEngine {
   return new JacksOrBetterVideoPokerEngine(config);
@@ -301,6 +303,15 @@ describe('pay table', () => {
       }
     }
   });
+
+  it('returns configured payouts when a custom table is supplied', () => {
+    const customPayTable = clonePayTable({
+      ...PAY_TABLE,
+      jacksOrBetter: [2, 4, 6, 8, 10],
+    });
+
+    expect(getPayout('jacksOrBetter', 5, customPayTable)).toBe(10);
+  });
 });
 
 describe('public engine flow', () => {
@@ -380,6 +391,44 @@ describe('public engine flow', () => {
     const before = snapshotClone(engine.snapshot());
     expectEngineError('invalidPhase', () => engine.addCredits(1));
     expectStateUnchanged(before, engine);
+  });
+
+  it('settles draws from the configured pay table', () => {
+    const engine = createVideoPokerEngine({
+      variant: 'JacksOrBetter',
+      minBetCredits: 1,
+      maxBetCredits: 5,
+      initialCredits: 100,
+      payTable: clonePayTable({
+        ...PAY_TABLE,
+        jacksOrBetter: [2, 4, 6, 8, 10],
+      }),
+      rng: rngForFinalDeck(hand('JC JD 2H 7S 9C')),
+    });
+
+    engine.deal(5);
+
+    expect(engine.draw([0, 1, 2, 3, 4]).payout).toBe(10);
+  });
+
+  it('uses updated pay settings for future settlements', () => {
+    const engine = createVideoPokerEngine({
+      variant: 'JacksOrBetter',
+      minBetCredits: 1,
+      maxBetCredits: 5,
+      initialCredits: 100,
+      rng: rngForFinalDeck(hand('JC JD 2H 7S 9C')),
+    });
+
+    engine.setPayTable(
+      clonePayTable({
+        ...PAY_TABLE,
+        jacksOrBetter: [3, 6, 9, 12, 15],
+      }),
+    );
+    engine.deal(5);
+
+    expect(engine.draw([0, 1, 2, 3, 4]).payout).toBe(15);
   });
 
   it('validates bets and invalid phases without mutation', () => {
