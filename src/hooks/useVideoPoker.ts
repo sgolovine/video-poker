@@ -212,6 +212,13 @@ export function useVideoPoker() {
     setHeldIndexes((current) => (current.includes(index) ? current.filter((value) => value !== index) : [...current, index]));
   }
 
+  function holdCard(index: number) {
+    if (phase !== 'dealt' || inputLocked) {
+      return;
+    }
+    setHeldIndexes((current) => (current.includes(index) ? current : [...current, index]));
+  }
+
   return {
     bet,
     activePayTableColumn,
@@ -225,6 +232,7 @@ export function useVideoPoker() {
     changeBet,
     deal,
     draw,
+    holdCard,
     replaceMachine,
     toggleHold,
   };

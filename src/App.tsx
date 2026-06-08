@@ -1,3 +1,5 @@
+import { useHotkeys, type UseHotkeyDefinition } from '@tanstack/react-hotkeys';
+import { useState } from 'react';
 import { BetControls } from './components/BetControls';
 import { CardSlot } from './components/CardSlot';
 import { GameMeters } from './components/GameMeters';
@@ -27,9 +29,11 @@ function App() {
     changeBet,
     deal,
     draw,
+    holdCard,
     replaceMachine,
     toggleHold,
   } = useVideoPoker();
+  const [selectedCardIndex, setSelectedCardIndex] = useState(0);
 
   const statusText =
     phase === 'dealt'
@@ -39,6 +43,43 @@ function App() {
           ? `${lastResult.label} PAYS ${lastResult.payout}`
           : 'GAME OVER'
         : 'PRESS DEAL';
+  const playCreditsBannerText = phase === 'complete' && !inputLocked ? `PLAY ${bet} CREDITS` : undefined;
+  const canUseCardShortcuts = phase === 'dealt' && !inputLocked;
+
+  function moveSelectedCard(step: number) {
+    if (!canUseCardShortcuts) {
+      return;
+    }
+    setSelectedCardIndex((current) => (current + step + 5) % 5);
+  }
+
+  function holdSelectedCard() {
+    holdCard(selectedCardIndex);
+  }
+
+  function startDeal() {
+    setSelectedCardIndex(0);
+    deal();
+  }
+
+  useHotkeys(
+    [
+      { hotkey: 'ArrowLeft', callback: () => moveSelectedCard(-1), options: { enabled: canUseCardShortcuts } },
+      { hotkey: 'ArrowUp', callback: () => moveSelectedCard(-1), options: { enabled: canUseCardShortcuts } },
+      { hotkey: 'ArrowRight', callback: () => moveSelectedCard(1), options: { enabled: canUseCardShortcuts } },
+      { hotkey: 'ArrowDown', callback: () => moveSelectedCard(1), options: { enabled: canUseCardShortcuts } },
+      { hotkey: 'Space', callback: holdSelectedCard, options: { enabled: canUseCardShortcuts } },
+      ...([1, 2, 3, 4, 5] as const).map((cardNumber, index): UseHotkeyDefinition => ({
+        hotkey: `${cardNumber}`,
+        callback: () => {
+          setSelectedCardIndex(index);
+          holdCard(index);
+        },
+        options: { enabled: canUseCardShortcuts },
+      })),
+    ],
+    { preventDefault: true },
+  );
 
   return (
     <main className="grid min-h-svh bg-[#000099] text-[#ffff2f]" aria-label="Jacks or Better video poker">
@@ -52,24 +93,33 @@ function App() {
           <div className="status-text mb-7 grid min-h-[42px] place-items-center text-center text-[28px] leading-none font-bold text-[#ff1d14] [text-shadow:-2px_-2px_0_#ffff2f,2px_-2px_0_#ffff2f,-2px_2px_0_#ffff2f,2px_2px_0_#ffff2f,3px_3px_0_#6d3600] max-[760px]:mb-4 max-[760px]:min-h-[34px] max-[760px]:text-xl">
             {statusText}
           </div>
-          <div
-            className="card-grid grid w-[min(1145px,calc(100vw-440px))] min-w-[700px] grid-cols-5 items-end gap-6 justify-self-center max-[1180px]:w-[calc(100vw-32px)] max-[1180px]:min-w-0 max-[1180px]:gap-3.5 max-[760px]:w-[calc(100vw-16px)] max-[760px]:gap-[7px]"
-            aria-label="Current hand"
-          >
-            {Array.from({ length: 5 }, (_, index) => {
-              const card = visibleHand[index];
+          <div className="relative grid w-[min(1145px,calc(100vw-440px))] min-w-[700px] justify-self-center max-[1180px]:w-[calc(100vw-32px)] max-[1180px]:min-w-0 max-[760px]:w-[calc(100vw-16px)]">
+            <div
+              className="card-grid grid grid-cols-5 items-end gap-6 max-[1180px]:gap-3.5 max-[760px]:gap-[7px]"
+              aria-label="Current hand"
+            >
+              {Array.from({ length: 5 }, (_, index) => {
+                const card = visibleHand[index];
 
-              return (
-                <CardSlot
-                  key={index}
-                  card={card}
-                  imageUrl={getCardImage(card)}
-                  held={heldIndexes.includes(index)}
-                  disabled={phase !== 'dealt'}
-                  onToggle={() => toggleHold(index)}
-                />
-              );
-            })}
+                return (
+                  <CardSlot
+                    key={index}
+                    card={card}
+                    imageUrl={getCardImage(card)}
+                    held={heldIndexes.includes(index)}
+                    selected={index === selectedCardIndex}
+                    shortcut={String(index + 1)}
+                    disabled={phase !== 'dealt'}
+                    onToggle={() => toggleHold(index)}
+                  />
+                );
+              })}
+            </div>
+            {playCreditsBannerText ? (
+              <div className="play-credits-banner pointer-events-none absolute top-[58%] left-1/2 z-10 w-[min(58rem,84%)] -translate-x-1/2 -translate-y-1/2 border-4 border-[#ffff2f] bg-[#00128f] px-4 py-2 text-center text-[clamp(1.35rem,4.5vw,3.75rem)] leading-none font-bold text-[#ff1d14] shadow-[0_0_0_3px_#000,0_6px_0_#000] [text-shadow:-2px_-2px_0_#ffff2f,2px_-2px_0_#ffff2f,-2px_2px_0_#ffff2f,2px_2px_0_#ffff2f,4px_4px_0_#6d3600] max-[760px]:border-2 max-[760px]:px-2 max-[760px]:py-1">
+                {playCreditsBannerText}
+              </div>
+            ) : null}
           </div>
         </section>
 
@@ -82,11 +132,12 @@ function App() {
             phase={phase}
             speed={speed}
             onBetChange={changeBet}
-            onDeal={deal}
+            onDeal={startDeal}
             onDraw={draw}
-            onOptionsRender={(className) => (
+            onOptionsRender={(className, shortcut) => (
               <SettingsDialog
                 triggerClassName={className}
+                triggerContent={shortcut}
                 onApplySettings={({ balance, pays: nextPays }) => {
                   setPays(nextPays);
                   replaceMachine(balance, nextPays);

@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import type React from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useHotkey } from '@tanstack/react-hotkeys';
 import type { CreditAmount, HandRank, PayTableConfig } from '../engine';
 import { clonePayTable } from '../engine';
 import { HAND_LABELS, HAND_ORDER } from '../data/payTable';
@@ -19,6 +21,7 @@ import { Label } from './ui/label';
 
 interface SettingsDialogProps {
   readonly triggerClassName: string;
+  readonly triggerContent?: React.ReactNode;
   readonly onApplySettings: (settings: { readonly balance: CreditAmount; readonly pays: PayTableConfig }) => void;
 }
 
@@ -58,17 +61,74 @@ function parsePayTable(payTable: EditablePayTable): PayTableConfig | undefined {
   return clonePayTable(nextPayTable);
 }
 
-export function SettingsDialog({ triggerClassName, onApplySettings }: SettingsDialogProps) {
+export function SettingsDialog({ triggerClassName, triggerContent, onApplySettings }: SettingsDialogProps) {
   const balance = useUserSettingsStore((state) => state.balance);
   const pays = useUserSettingsStore((state) => state.pays);
   const [open, setOpen] = useState(false);
   const [balanceInput, setBalanceInput] = useState(String(balance));
   const [payTableInput, setPayTableInput] = useState<EditablePayTable>(() => stringifyPayTable(pays));
+  const [serviceWorkerRegistration, setServiceWorkerRegistration] = useState<ServiceWorkerRegistration>();
+  const [isCheckingForUpdate, setIsCheckingForUpdate] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState('');
+  const [offlineReady, setOfflineReady] = useState(false);
+  const [needRefresh, setNeedRefresh] = useState(false);
+  const reloadOnControllerChange = useRef(false);
 
   const parsedBalance = parseSafeInteger(balanceInput);
   const parsedPayTable = useMemo(() => parsePayTable(payTableInput), [payTableInput]);
   const canApplyBalance = parsedBalance !== undefined;
   const canApplyPayTable = parsedPayTable !== undefined;
+
+  useHotkey('O', () => setOpen(true), { enabled: !open, preventDefault: true });
+
+  useEffect(() => {
+    if (!import.meta.env.PROD || !('serviceWorker' in navigator)) {
+      return;
+    }
+
+    function watchRegistration(registration: ServiceWorkerRegistration) {
+      setServiceWorkerRegistration(registration);
+
+      if (registration.active) {
+        setOfflineReady(true);
+      }
+
+      if (registration.waiting && navigator.serviceWorker.controller) {
+        setNeedRefresh(true);
+      }
+
+      registration.addEventListener('updatefound', () => {
+        const installingWorker = registration.installing;
+        if (!installingWorker) {
+          return;
+        }
+
+        installingWorker.addEventListener('statechange', () => {
+          if (installingWorker.state !== 'installed') {
+            return;
+          }
+
+          if (navigator.serviceWorker.controller) {
+            setNeedRefresh(true);
+            setUpdateStatus('');
+          } else {
+            setOfflineReady(true);
+          }
+        });
+      });
+    }
+
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then(watchRegistration)
+      .catch(() => setUpdateStatus('Offline support could not be enabled.'));
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (reloadOnControllerChange.current) {
+        window.location.reload();
+      }
+    });
+  }, []);
 
   function applyBalance() {
     if (parsedBalance === undefined) {
@@ -98,6 +158,46 @@ export function SettingsDialog({ triggerClassName, onApplySettings }: SettingsDi
     onApplySettings({ balance: DEFAULT_BALANCE, pays: DEFAULT_PAYS });
   }
 
+  async function checkForUpdates() {
+    setIsCheckingForUpdate(true);
+    setUpdateStatus('');
+    setOfflineReady(false);
+
+    try {
+      if (!('serviceWorker' in navigator)) {
+        setUpdateStatus('Updates are not available in this browser.');
+        return;
+      }
+
+      const registration = serviceWorkerRegistration ?? (await navigator.serviceWorker.getRegistration());
+      if (!registration) {
+        setUpdateStatus('Offline support is still starting. Try again in a moment.');
+        return;
+      }
+
+      await registration.update();
+      setUpdateStatus('No update found.');
+    } catch {
+      setUpdateStatus('Could not check for updates.');
+    } finally {
+      setIsCheckingForUpdate(false);
+    }
+  }
+
+  function installUpdate() {
+    const waitingWorker = serviceWorkerRegistration?.waiting;
+    if (!waitingWorker) {
+      setUpdateStatus('Update is no longer waiting. Check again.');
+      setNeedRefresh(false);
+      return;
+    }
+
+    reloadOnControllerChange.current = true;
+    waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+  }
+
+  const pwaStatus = needRefresh ? 'Update ready.' : offlineReady ? 'Offline ready.' : updateStatus;
+
   return (
     <Dialog
       open={open}
@@ -112,7 +212,7 @@ export function SettingsDialog({ triggerClassName, onApplySettings }: SettingsDi
     >
       <DialogTrigger asChild>
         <button type="button" className={triggerClassName}>
-          OPTIONS
+          {triggerContent ?? 'OPTIONS'}
         </button>
       </DialogTrigger>
       <DialogContent className="border-[#a5a831] bg-[#000052] p-0 font-[Arial,Helvetica,sans-serif] text-white shadow-[0_0_0_4px_#00195c,0_16px_60px_rgba(0,0,0,0.65)]">
@@ -230,6 +330,32 @@ export function SettingsDialog({ triggerClassName, onApplySettings }: SettingsDi
               <Button type="button" variant="destructive" onClick={wipeLocalData} className="w-fit font-black">
                 Wipe Local Data
               </Button>
+            </section>
+
+            <section className="grid gap-3 border-t border-[#a5a831] pt-5" aria-labelledby="app-settings-title">
+              <div className="grid gap-1">
+                <h2 id="app-settings-title" className="text-base leading-none font-black text-[#ffff2f]">
+                  App
+                </h2>
+                <p className="text-sm text-[#d9d9d9]">Version {__APP_VERSION__}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {needRefresh ? (
+                  <Button type="button" onClick={installUpdate} className="bg-[#ffe63d] font-black text-[#070707] hover:bg-[#fff06b]">
+                    Install Update
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    disabled={isCheckingForUpdate}
+                    onClick={checkForUpdates}
+                    className="bg-[#ffe63d] font-black text-[#070707] hover:bg-[#fff06b]"
+                  >
+                    {isCheckingForUpdate ? 'Checking...' : 'Check for Updates'}
+                  </Button>
+                )}
+                {pwaStatus ? <p className="text-sm text-[#d9d9d9]">{pwaStatus}</p> : null}
+              </div>
             </section>
           </div>
 
