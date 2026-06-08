@@ -1,14 +1,17 @@
-@import '@fontsource/silkscreen/400.css';
-@import '@fontsource/silkscreen/700.css';
+@import '@fontsource/orbitron/400.css';
+@import '@fontsource/orbitron/700.css';
+@import '@fontsource/roboto/400.css';
+@import '@fontsource/roboto/500.css';
+@import '@fontsource/roboto/700.css';
+@import '@fontsource/roboto/900.css';
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  font-family: 'Silkscreen', monospace;
+  font-family: 'Orbitron', sans-serif;
   color: #fff8d7;
   background: #050505;
   font-synthesis: none;
@@ -63,6 +66,20 @@ input,
 select,
 textarea {
   font-family: inherit;
+}
+
+.settings-dialog {
+  --settings-panel: #101d3a;
+  --settings-inset: #0b1630;
+  --settings-table: #172b52;
+  --settings-accent: #d9c65a;
+  --settings-button: #d4b84e;
+  --settings-button-hover: #e0c967;
+  --settings-border: #7f8ea8;
+  --settings-hover-blue: #263d73;
+  --settings-secondary-text: #d8deeb;
+  --settings-button-text: #07101f;
+  font-family: 'Roboto', Arial, sans-serif;
 }
 
 .card-slot {
@@ -165,6 +182,7 @@ textarea {
 
   .card-grid {
     width: min(calc(100vw - 1rem), calc((100svh - 11.25rem) * 5 * 169 / 244));
+    justify-self: center;
   }
 
   .controls-footer {
@@ -181,7 +199,7 @@ textarea {
 
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: 'Geist Variable', sans-serif;
+  --font-sans: 'Orbitron', sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);

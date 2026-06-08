@@ -13,6 +13,7 @@ import { useUserSettingsStore } from './stores/userSettings';
 function App() {
   const isPayTableVisible = useLayoutStore((state) => state.isPayTableVisible);
   const speed = useUserSettingsStore((state) => state.speed);
+  const showKeyboardShortcuts = useUserSettingsStore((state) => state.showKeyboardShortcuts);
   const pays = useUserSettingsStore((state) => state.pays);
   const cycleSpeed = useUserSettingsStore((state) => state.cycleSpeed);
   const setPays = useUserSettingsStore((state) => state.setPays);
@@ -38,21 +39,18 @@ function App() {
   const statusText =
     phase === 'dealt'
       ? 'SELECT CARDS TO HOLD'
-      : lastResult
-        ? lastResult.payout > 0
-          ? `${lastResult.label}`
-          : 'GAME OVER'
+      : phase === 'complete' && !inputLocked
+        ? `PLAY ${bet} CREDITS`
         : 'PRESS DEAL';
-  const playCreditsBannerText = phase === 'complete' && !inputLocked ? `PLAY ${bet} CREDITS` : undefined;
+  const handResultBannerText =
+    phase === 'complete' && !inputLocked ? (lastResult?.payout ? lastResult.label : 'GAME OVER') : undefined;
   const canUseCardShortcuts = phase === 'dealt' && !inputLocked;
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if(event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-        setIsArrowNavigationActive(true)
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        setIsArrowNavigationActive(true);
       }
-
-
     }
 
     function handleMouseMove() {
@@ -77,7 +75,6 @@ function App() {
 
   function holdSelectedCard() {
     toggleHold(selectedCardIndex);
-    
   }
 
   function startDeal() {
@@ -93,14 +90,16 @@ function App() {
       { hotkey: 'ArrowRight', callback: () => moveSelectedCard(1), options: { enabled: canUseCardShortcuts } },
       { hotkey: 'ArrowDown', callback: () => moveSelectedCard(1), options: { enabled: canUseCardShortcuts } },
       { hotkey: 'Space', callback: holdSelectedCard, options: { enabled: canUseCardShortcuts } },
-      ...([1, 2, 3, 4, 5] as const).map((cardNumber, index): UseHotkeyDefinition => ({
-        hotkey: `${cardNumber}`,
-        callback: () => {
-          setSelectedCardIndex(index);
-          toggleHold(index);
-        },
-        options: { enabled: canUseCardShortcuts },
-      })),
+      ...([1, 2, 3, 4, 5] as const).map(
+        (cardNumber, index): UseHotkeyDefinition => ({
+          hotkey: `${cardNumber}`,
+          callback: () => {
+            setSelectedCardIndex(index);
+            toggleHold(index);
+          },
+          options: { enabled: canUseCardShortcuts },
+        }),
+      ),
     ],
     { preventDefault: true },
   );
@@ -114,7 +113,7 @@ function App() {
         {isPayTableVisible ? <PayTable activeColumn={activePayTableColumn} payTable={pays} /> : null}
 
         <section className="play-area grid content-start pt-[17px] max-[760px]:pt-3" aria-live="polite">
-          <div className="status-text mb-7 grid min-h-[42px] place-items-center text-center text-[28px] leading-none font-bold text-[#ff1d14] [text-shadow:-2px_-2px_0_#ffff2f,2px_-2px_0_#ffff2f,-2px_2px_0_#ffff2f,2px_2px_0_#ffff2f,3px_3px_0_#6d3600] max-[760px]:mb-4 max-[760px]:min-h-[34px] max-[760px]:text-xl">
+          <div className="status-text mb-7 grid min-h-[42px] place-items-center text-center text-[28px] leading-none font-bold text-white max-[760px]:mb-4 max-[760px]:min-h-[34px] max-[760px]:text-xl">
             {statusText}
           </div>
           <div className="relative grid w-[min(1145px,calc(100vw-440px))] min-w-[700px] justify-self-center max-[1180px]:w-[calc(100vw-32px)] max-[1180px]:min-w-0 max-[760px]:w-[calc(100vw-16px)]">
@@ -133,6 +132,7 @@ function App() {
                     held={heldIndexes.includes(index)}
                     selected={isArrowNavigationActive && index === selectedCardIndex}
                     showMouseOutline={!isArrowNavigationActive}
+                    showKeyboardShortcut={showKeyboardShortcuts}
                     shortcut={String(index + 1)}
                     disabled={phase !== 'dealt'}
                     onToggle={() => toggleHold(index)}
@@ -140,9 +140,9 @@ function App() {
                 );
               })}
             </div>
-            {playCreditsBannerText ? (
+            {handResultBannerText ? (
               <div className="play-credits-banner pointer-events-none absolute top-[58%] left-1/2 z-10 w-[min(58rem,84%)] -translate-x-1/2 -translate-y-1/2 border-4 border-[#ffff2f] bg-[#00128f] px-4 py-2 text-center text-[clamp(1.35rem,4.5vw,3.75rem)] leading-none font-bold text-[#ff1d14] shadow-[0_0_0_3px_#000,0_6px_0_#000] [text-shadow:-2px_-2px_0_#ffff2f,2px_-2px_0_#ffff2f,-2px_2px_0_#ffff2f,2px_2px_0_#ffff2f,4px_4px_0_#6d3600] max-[760px]:border-2 max-[760px]:px-2 max-[760px]:py-1">
-                {playCreditsBannerText}
+                {handResultBannerText}
               </div>
             ) : null}
           </div>
@@ -156,6 +156,7 @@ function App() {
             inputLocked={inputLocked}
             phase={phase}
             speed={speed}
+            showKeyboardShortcuts={showKeyboardShortcuts}
             onBetChange={changeBet}
             onDeal={startDeal}
             onDraw={draw}
@@ -171,7 +172,7 @@ function App() {
             )}
             onSpeedChange={cycleSpeed}
           />
-          <div className="w-[min(1228px,calc(100vw-396px))] min-w-[760px] justify-self-center text-right font-[Arial,Helvetica,sans-serif] text-lg leading-none font-bold text-white [text-shadow:2px_2px_1px_#00195c] max-[1180px]:w-[calc(100vw-32px)] max-[1180px]:min-w-0 max-[760px]:w-full max-[760px]:text-sm">
+          <div className="w-[min(1228px,calc(100vw-396px))] min-w-[760px] justify-self-center text-right text-lg leading-none font-bold text-white [text-shadow:2px_2px_1px_#00195c] max-[1180px]:w-[calc(100vw-32px)] max-[1180px]:min-w-0 max-[760px]:w-full max-[760px]:text-sm">
             JACKS OR BETTER
           </div>
         </footer>

@@ -1,3 +1,22 @@
+import NumberFlow, { continuous } from '@number-flow/react';
+
+const meterNumberFormat = {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+} satisfies Intl.NumberFormatOptions;
+
+const meterTransformTiming = {
+  duration: 650,
+  easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+} satisfies EffectTiming;
+
+const meterSpinTiming = {
+  duration: 700,
+  easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+} satisfies EffectTiming;
+
+const meterPlugins = [continuous];
+
 interface GameMetersProps {
   readonly credits: number;
   readonly bet: number;
@@ -22,18 +41,29 @@ function Meter({ align, label, value }: { readonly align: 'start' | 'center' | '
     align === 'start'
       ? 'justify-self-start text-left'
       : align === 'center'
-        ? 'justify-self-center text-center text-white [text-shadow:2px_2px_0_#0036a1,0_0_2px_#000]'
+        ? 'justify-self-center text-center text-white'
         : 'justify-self-end text-right';
 
   return (
     <div
       className={[
-        'grid gap-0 text-[#ff1d14] [text-shadow:-2px_-2px_0_#ffff2f,2px_-2px_0_#ffff2f,-2px_2px_0_#ffff2f,2px_2px_0_#ffff2f,3px_3px_0_#6d3600]',
+        'grid gap-0 text-white',
         alignClassName,
       ].join(' ')}
     >
       <span className="block text-[28px] leading-[0.95] font-bold max-[760px]:text-base">{label}</span>
-      <strong className="block text-[31px] leading-[0.95] font-bold max-[760px]:text-lg">{value.toFixed(2)}</strong>
+      <strong className="block text-[31px] leading-[0.95] font-bold max-[760px]:text-lg">
+        <NumberFlow
+          className="block tabular-nums"
+          value={value}
+          format={meterNumberFormat}
+          plugins={meterPlugins}
+          transformTiming={meterTransformTiming}
+          spinTiming={meterSpinTiming}
+          aria-label={value.toFixed(2)}
+          willChange
+        />
+      </strong>
     </div>
   );
 }

@@ -6,14 +6,17 @@ export const GAME_SPEEDS = ['slow', 'medium', 'fast'] as const;
 export const DEFAULT_BALANCE = 100;
 export const DEFAULT_PAYS = clonePayTable(PAY_TABLE);
 const DEFAULT_SPEED: GameSpeed = 'medium';
+const MOBILE_SHORTCUT_MEDIA_QUERY = '(max-width: 760px)';
 
 export type GameSpeed = (typeof GAME_SPEEDS)[number];
 
 interface UserSettingsState {
   readonly speed: GameSpeed;
+  readonly showKeyboardShortcuts: boolean;
   readonly balance: CreditAmount;
   readonly pays: PayTableConfig;
   readonly setSpeed: (speed: GameSpeed) => void;
+  readonly setShowKeyboardShortcuts: (showKeyboardShortcuts: boolean) => void;
   readonly cycleSpeed: () => void;
   readonly setBalance: (balance: CreditAmount) => void;
   readonly setPays: (pays: PayTableConfig) => void;
@@ -30,13 +33,23 @@ function isGameSpeed(value: unknown): value is GameSpeed {
   return GAME_SPEEDS.includes(value as GameSpeed);
 }
 
+export function getDefaultShowKeyboardShortcuts(): boolean {
+  return (
+    typeof window === 'undefined' ||
+    typeof window.matchMedia !== 'function' ||
+    !window.matchMedia(MOBILE_SHORTCUT_MEDIA_QUERY).matches
+  );
+}
+
 export const useUserSettingsStore = create<UserSettingsState>()(
   persist(
     (set, get) => ({
       speed: DEFAULT_SPEED,
+      showKeyboardShortcuts: getDefaultShowKeyboardShortcuts(),
       balance: DEFAULT_BALANCE,
       pays: DEFAULT_PAYS,
       setSpeed: (speed) => set({ speed }),
+      setShowKeyboardShortcuts: (showKeyboardShortcuts) => set({ showKeyboardShortcuts }),
       cycleSpeed: () => {
         const currentIndex = GAME_SPEEDS.indexOf(get().speed);
         const nextSpeed = GAME_SPEEDS[(currentIndex + 1) % GAME_SPEEDS.length];
@@ -68,9 +81,18 @@ export const useUserSettingsStore = create<UserSettingsState>()(
           ...currentState,
           ...persisted,
           speed: isGameSpeed(persisted?.speed) ? persisted.speed : DEFAULT_SPEED,
+          showKeyboardShortcuts:
+            typeof persisted?.showKeyboardShortcuts === 'boolean'
+              ? persisted.showKeyboardShortcuts
+              : getDefaultShowKeyboardShortcuts(),
         };
       },
-      partialize: (state) => ({ speed: state.speed, balance: state.balance, pays: state.pays }),
+      partialize: (state) => ({
+        speed: state.speed,
+        showKeyboardShortcuts: state.showKeyboardShortcuts,
+        balance: state.balance,
+        pays: state.pays,
+      }),
     },
   ),
 );
