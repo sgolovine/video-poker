@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import type { CreditAmount, HandRank, PayTableConfig } from '../../engine';
-import { clonePayTable } from '../../engine';
+import type { CreditAmount, HandRank, PayTableConfig } from '../engine';
+import { clonePayTable } from '../engine';
 import { HAND_LABELS, HAND_ORDER } from '../data/payTable';
 import { DEFAULT_BALANCE, DEFAULT_PAYS, useUserSettingsStore } from '../stores/userSettings';
 import { Button } from './ui/button';

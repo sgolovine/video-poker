@@ -1,4 +1,4 @@
-import type { Card, Rank } from '../../engine';
+import type { Card, Rank } from '../engine';
 
 const CARD_URLS = import.meta.glob('../../assets/cards/*.svg', {
   eager: true,

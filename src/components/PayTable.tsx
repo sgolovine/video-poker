@@ -1,5 +1,5 @@
 import { HAND_LABELS, HAND_ORDER } from '../data/payTable';
-import type { PayTableConfig } from '../../engine';
+import type { PayTableConfig } from '../engine';
 
 interface PayTableProps {
   readonly activeColumn?: number;

@@ -1,4 +1,4 @@
-import type { HandRank } from '../../engine';
+import type { HandRank } from '../engine';
 
 export const HAND_ORDER: readonly HandRank[] = [
   'royalFlush',

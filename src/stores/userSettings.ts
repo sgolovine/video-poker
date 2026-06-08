@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { PAY_TABLE, clonePayTable, type CreditAmount, type HandRank, type PayTableConfig } from '../../engine';
+import { PAY_TABLE, clonePayTable, type CreditAmount, type HandRank, type PayTableConfig } from '../engine';
 
 export const GAME_SPEEDS = ['slow', 'medium', 'fast', 'turbo'] as const;
 export const DEFAULT_BALANCE = 100;

@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { GamePhase } from '../../engine';
+import type { GamePhase } from '../engine';
 import { useLayoutStore } from '../stores/layout';
 import { GAME_SPEEDS, type GameSpeed } from '../stores/userSettings';
 

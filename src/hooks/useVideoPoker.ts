@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { JacksOrBetterVideoPokerEngine, type Card, type CardIndex, type GameSnapshot, type HandRank, type PayTableConfig } from '../../engine';
+import { JacksOrBetterVideoPokerEngine, type Card, type CardIndex, type GameSnapshot, type HandRank, type PayTableConfig } from '../engine';
 import { HAND_LABELS } from '../data/payTable';
 import { useUserSettingsStore, type GameSpeed } from '../stores/userSettings';
 

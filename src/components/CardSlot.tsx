@@ -1,4 +1,4 @@
-import type { Card } from '../../engine';
+import type { Card } from '../engine';
 
 interface CardSlotProps {
   readonly card?: Card;
