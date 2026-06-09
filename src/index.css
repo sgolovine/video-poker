@@ -177,6 +177,8 @@ textarea {
     max-width: none;
     height: var(--app-viewport-height);
     max-height: none;
+    --tw-translate-x: 0;
+    --tw-translate-y: 0;
     translate: none;
     transform: none;
     border-radius: 0;
@@ -212,6 +214,8 @@ textarea {
     max-width: none;
     height: var(--app-viewport-height);
     max-height: none;
+    --tw-translate-x: 0;
+    --tw-translate-y: 0;
     translate: none;
     transform: none;
     border-radius: 0;
