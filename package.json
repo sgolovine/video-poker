@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "doctor": "npx react-doctor@latest"
+    "doctor": "npx react-doctor@latest",
+    "serve": "npx serve -s ./dist"
   },
   "dependencies": {
     "@fontsource/orbitron": "^5.2.8",
