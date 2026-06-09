@@ -1,6 +1,7 @@
 import { useHotkey } from '@tanstack/react-hotkeys';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { getPayTableRanks, HAND_LABELS } from '../data/payTable';
 import {
   type CreditAmount,
@@ -21,6 +22,7 @@ import {
   getDefaultShowKeyboardShortcuts,
   useUserSettingsStore,
 } from '../stores/userSettings';
+import { type GameStats, useStatsStore } from '../stores/stats';
 import { Button } from './ui/button';
 import {
   Dialog,
@@ -95,6 +97,28 @@ function payTableForVariant(payTablesByVariant: VariantPayTables, variant: GameV
   return payTablesByVariant[variant] ?? getDefaultPayTable(variant);
 }
 
+function formatPercent(value: number): string {
+  return `${value.toFixed(1)}%`;
+}
+
+function formatCredits(value: CreditAmount): string {
+  return value.toLocaleString();
+}
+
+function formatDollarAmount(value: number): string {
+  const sign = value < 0 ? '-' : '';
+
+  return `${sign}$${Math.abs(value).toLocaleString()}`;
+}
+
+function formatNetDollarAmount(value: number): string {
+  return value > 0 ? `+${formatDollarAmount(value)}` : formatDollarAmount(value);
+}
+
+function formatHighestHand(stats: GameStats): string {
+  return stats.highestHandWon ? HAND_LABELS[stats.highestHandWon] : 'None';
+}
+
 export function SettingsDialog({ triggerClassName, triggerContent, onApplySettings }: SettingsDialogProps) {
   const balance = useUserSettingsStore((state) => state.balance);
   const selectedVariant = useUserSettingsStore((state) => state.selectedVariant);
@@ -103,6 +127,9 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
   const cardBackId = useUserSettingsStore((state) => state.cardBackId);
   const setShowKeyboardShortcuts = useUserSettingsStore((state) => state.setShowKeyboardShortcuts);
   const setCardBackId = useUserSettingsStore((state) => state.setCardBackId);
+  const globalStats = useStatsStore((state) => state.globalStats);
+  const statsByVariant = useStatsStore((state) => state.statsByVariant);
+  const resetStats = useStatsStore((state) => state.resetStats);
   const [open, setOpen] = useState(false);
   const [variantInput, setVariantInput] = useState<GameVariant>(selectedVariant);
   const [balanceInput, setBalanceInput] = useState(String(balance));
@@ -204,6 +231,12 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
     setVariantInput(nextVariant);
     setPayTableInput(stringifyPayTable(nextVariant, nextPays));
     onApplySettings({ balance, variant: nextVariant, pays: nextPays });
+
+    if (nextVariant !== selectedVariant) {
+      toast.success('Game changed', {
+        description: GAME_DEFINITIONS[nextVariant].label,
+      });
+    }
   }
 
   function applyBalance() {
@@ -216,6 +249,9 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
       variant: selectedVariant,
       pays: payTableForVariant(payTablesByVariant, selectedVariant),
     });
+    toast.success('Bank balance updated', {
+      description: `${parsedBalance} credits`,
+    });
   }
 
   function applyPayTable() {
@@ -224,12 +260,25 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
     }
 
     onApplySettings({ balance, variant: variantInput, pays: parsedPayTable });
+    toast.success('Paytables updated', {
+      description: GAME_DEFINITIONS[variantInput].label,
+    });
   }
 
   function resetPayTable() {
     const defaultPayTable = getDefaultPayTable(variantInput);
     setPayTableInput(stringifyPayTable(variantInput, defaultPayTable));
     onApplySettings({ balance, variant: variantInput, pays: defaultPayTable });
+    toast.success('Paytables reset', {
+      description: GAME_DEFINITIONS[variantInput].label,
+    });
+  }
+
+  function resetStoredStats() {
+    resetStats();
+    toast.warning('Stats reset', {
+      description: 'All tracked play stats have been cleared.',
+    });
   }
 
   function wipeLocalData() {
@@ -240,6 +289,9 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
     setShowKeyboardShortcuts(getDefaultShowKeyboardShortcuts());
     setCardBackId(DEFAULT_CARD_BACK_ID);
     onApplySettings({ balance: DEFAULT_BALANCE, variant: DEFAULT_VARIANT, pays: DEFAULT_PAY_TABLES[DEFAULT_VARIANT] });
+    toast.warning('Local storage wiped', {
+      description: 'Settings have been reset to defaults.',
+    });
   }
 
   async function checkForUpdates() {
@@ -250,19 +302,31 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
     try {
       if (!('serviceWorker' in navigator)) {
         setUpdateStatus('Updates are not available in this browser.');
+        toast.info('Checked for app updates', {
+          description: 'Updates are not available in this browser.',
+        });
         return;
       }
 
       const registration = serviceWorkerRegistration ?? (await navigator.serviceWorker.getRegistration());
       if (!registration) {
         setUpdateStatus('Offline support is still starting. Try again in a moment.');
+        toast.info('Checked for app updates', {
+          description: 'Offline support is still starting. Try again in a moment.',
+        });
         return;
       }
 
       await registration.update();
       setUpdateStatus('No update found.');
+      toast.info('Checked for app updates', {
+        description: 'No update found.',
+      });
     } catch {
       setUpdateStatus('Could not check for updates.');
+      toast.error('Checked for app updates', {
+        description: 'Could not check for updates.',
+      });
     } finally {
       setIsCheckingForUpdate(false);
     }
@@ -310,13 +374,13 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
               SETTINGS
             </DialogTitle>
             <DialogDescription className="sr-only">
-              Configure game, display, paytable, and app settings.
+              Configure game, display, paytable, stats, and app settings.
             </DialogDescription>
             <TabsList
               aria-label="Settings sections"
-              className="grid h-10 w-full grid-cols-4 overflow-hidden rounded-sm border border-[var(--settings-border)] bg-[var(--settings-inset)] p-1 text-[var(--settings-secondary-text)] group-data-horizontal/tabs:h-10"
+              className="grid h-auto w-full grid-cols-3 auto-rows-[2.25rem] overflow-hidden rounded-sm border border-[var(--settings-border)] bg-[var(--settings-inset)] p-1 text-[var(--settings-secondary-text)] group-data-horizontal/tabs:h-auto sm:h-10 sm:grid-cols-5 sm:auto-rows-auto sm:group-data-horizontal/tabs:h-10"
             >
-              {['game', 'display', 'paytables', 'app'].map((tab) => (
+              {['game', 'display', 'paytables', 'stats', 'app'].map((tab) => (
                 <TabsTrigger
                   key={tab}
                   value={tab}
@@ -423,7 +487,13 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
                     <input
                       type="checkbox"
                       checked={showKeyboardShortcuts}
-                      onChange={(event) => setShowKeyboardShortcuts(event.target.checked)}
+                      onChange={(event) => {
+                        const nextShowKeyboardShortcuts = event.target.checked;
+                        setShowKeyboardShortcuts(nextShowKeyboardShortcuts);
+                        toast.info('Keyboard shortcuts updated', {
+                          description: nextShowKeyboardShortcuts ? 'Shortcuts are visible.' : 'Shortcuts are hidden.',
+                        });
+                      }}
                       className="h-5 w-5 accent-[var(--settings-button)]"
                     />
                     Show Keyboard Shortcuts
@@ -438,7 +508,16 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
                           type="button"
                           aria-label={cardBack.label}
                           aria-pressed={cardBack.id === cardBackId}
-                          onClick={() => setCardBackId(cardBack.id)}
+                          onClick={() => {
+                            if (cardBack.id === cardBackId) {
+                              return;
+                            }
+
+                            setCardBackId(cardBack.id);
+                            toast.info('Card back updated', {
+                              description: cardBack.label,
+                            });
+                          }}
                           className="grid min-h-24 place-items-center rounded-sm border-2 border-transparent bg-transparent p-1 outline-offset-2 transition enabled:cursor-pointer hover:border-[var(--settings-accent)] focus-visible:outline-2 focus-visible:outline-[var(--settings-accent)] aria-pressed:border-[var(--settings-button)] aria-pressed:bg-[var(--settings-hover-blue)]"
                         >
                           <img
@@ -522,6 +601,79 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
               </section>
             </TabsContent>
 
+            <TabsContent value="stats" className="mt-0 grid gap-6">
+              <section className="grid gap-3" aria-labelledby="stats-settings-title">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div className="grid gap-1">
+                    <h2
+                      id="stats-settings-title"
+                      className="text-base leading-none font-black text-[var(--settings-accent)]"
+                    >
+                      Lifetime Stats
+                    </h2>
+                    <p className="text-sm text-[var(--settings-secondary-text)]">
+                      Review totals tracked on this device.
+                    </p>
+                  </div>
+                  <Button type="button" variant="destructive" onClick={resetStoredStats} className="w-fit font-black">
+                    Reset Stats
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  <StatsSummaryItem label="Hands" value={formatCredits(globalStats.handsPlayed)} />
+                  <StatsSummaryItem label="Wins" value={formatCredits(globalStats.winningHands)} />
+                  <StatsSummaryItem label="Win Rate" value={formatPercent(globalStats.winPercentage)} />
+                  <StatsSummaryItem label="Spent" value={formatDollarAmount(globalStats.totalMoneySpent)} />
+                  <StatsSummaryItem label="Earned" value={formatDollarAmount(globalStats.totalMoneyEarned)} />
+                  <StatsSummaryItem label="Net" value={formatNetDollarAmount(globalStats.totalWinLoss)} />
+                </div>
+
+                <div className="grid gap-2 rounded-sm border border-[var(--settings-border)] bg-[var(--settings-inset)] p-3">
+                  <span className="text-xs font-black tracking-normal text-[var(--settings-secondary-text)] uppercase">
+                    Best Hand
+                  </span>
+                  <span className="text-lg font-black text-[var(--settings-accent)]">
+                    {formatHighestHand(globalStats)}
+                  </span>
+                </div>
+              </section>
+
+              <section
+                className="grid gap-3 border-t border-[var(--settings-border)] pt-5"
+                aria-labelledby="variant-stats-title"
+              >
+                <h2
+                  id="variant-stats-title"
+                  className="text-base leading-none font-black text-[var(--settings-accent)]"
+                >
+                  By Game
+                </h2>
+                <div className="overflow-x-auto border border-[var(--settings-border)]">
+                  <div className="grid min-w-[760px] grid-cols-[minmax(160px,1.2fr)_repeat(6,minmax(88px,1fr))_minmax(160px,1fr)] bg-[var(--settings-table)] text-sm">
+                    <div className="border-r border-b border-[var(--settings-border)] px-2 py-2 font-black text-[var(--settings-accent)]">
+                      Game
+                    </div>
+                    {['Hands', 'Wins', 'Rate', 'Spent', 'Earned', 'Net'].map((label) => (
+                      <div
+                        key={label}
+                        className="border-r border-b border-[var(--settings-border)] px-2 py-2 text-right font-black text-[var(--settings-accent)]"
+                      >
+                        {label}
+                      </div>
+                    ))}
+                    <div className="border-b border-[var(--settings-border)] px-2 py-2 font-black text-[var(--settings-accent)]">
+                      Best Hand
+                    </div>
+
+                    {GAME_VARIANTS.map((variant) => (
+                      <StatsTableRow key={variant} variant={variant} stats={statsByVariant[variant]} />
+                    ))}
+                  </div>
+                </div>
+              </section>
+            </TabsContent>
+
             <TabsContent value="app" className="mt-0 grid gap-6">
               <section className="grid gap-3" aria-labelledby="storage-settings-title">
                 <div className="grid gap-1">
@@ -592,6 +744,44 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
         </Tabs>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function StatsSummaryItem({ label, value }: { readonly label: string; readonly value: string }) {
+  return (
+    <div className="grid gap-1 rounded-sm border border-[var(--settings-border)] bg-[var(--settings-inset)] p-3">
+      <span className="text-xs font-black tracking-normal text-[var(--settings-secondary-text)] uppercase">
+        {label}
+      </span>
+      <span className="text-xl font-black text-white">{value}</span>
+    </div>
+  );
+}
+
+function StatsTableRow({ variant, stats }: { readonly variant: GameVariant; readonly stats: GameStats }) {
+  const numericCells = [
+    formatCredits(stats.handsPlayed),
+    formatCredits(stats.winningHands),
+    formatPercent(stats.winPercentage),
+    formatDollarAmount(stats.totalMoneySpent),
+    formatDollarAmount(stats.totalMoneyEarned),
+    formatNetDollarAmount(stats.totalWinLoss),
+  ];
+
+  return (
+    <>
+      <div className="border-r border-b border-[var(--settings-border)] px-2 py-2 font-black text-[var(--settings-accent)]">
+        {GAME_DEFINITIONS[variant].label}
+      </div>
+      {numericCells.map((value, index) => (
+        <div key={index} className="border-r border-b border-[var(--settings-border)] px-2 py-2 text-right text-white">
+          {value}
+        </div>
+      ))}
+      <div className="border-b border-[var(--settings-border)] px-2 py-2 font-black text-white">
+        {formatHighestHand(stats)}
+      </div>
+    </>
   );
 }
 

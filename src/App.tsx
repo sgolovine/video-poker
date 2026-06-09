@@ -1,4 +1,4 @@
-import { useHotkeys, type UseHotkeyDefinition } from '@tanstack/react-hotkeys';
+import { type UseHotkeyDefinition, useHotkeys } from '@tanstack/react-hotkeys';
 import { useEffect, useState } from 'react';
 import { BetControls } from './components/BetControls';
 import { CardSlot } from './components/CardSlot';

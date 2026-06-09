@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { recordCompletedHand, type CompletedHandStatsInput, type GameStats, type StatsByVariant } from './stats';
+import {
+  createEmptyStatsState,
+  recordCompletedHand,
+  type CompletedHandStatsInput,
+  type GameStats,
+  type StatsByVariant,
+  useStatsStore,
+} from './stats';
 
 function emptyStats(): GameStats {
   return {
@@ -131,5 +138,24 @@ describe('stats store calculations', () => {
         payout: -1,
       }),
     ).toThrow(RangeError);
+  });
+
+  it('resets persisted store stats to empty totals', () => {
+    useStatsStore.getState().resetStats();
+    useStatsStore.getState().recordHand({
+      variant: 'JacksOrBetter',
+      handRank: 'straightFlush',
+      bet: 5,
+      payout: 250,
+    });
+
+    expect(useStatsStore.getState().globalStats.handsPlayed).toBe(1);
+
+    useStatsStore.getState().resetStats();
+
+    expect({
+      globalStats: useStatsStore.getState().globalStats,
+      statsByVariant: useStatsStore.getState().statsByVariant,
+    }).toEqual(createEmptyStatsState());
   });
 });

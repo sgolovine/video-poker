@@ -1,6 +1,8 @@
 import NumberFlow, { continuous } from '@number-flow/react';
 
 const meterNumberFormat = {
+  style: 'currency',
+  currency: 'USD',
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 } satisfies Intl.NumberFormatOptions;
@@ -63,7 +65,7 @@ function Meter({
           plugins={meterPlugins}
           transformTiming={meterTransformTiming}
           spinTiming={meterSpinTiming}
-          aria-label={value.toFixed(2)}
+          aria-label={`$${value.toFixed(2)}`}
           willChange
         />
       </strong>

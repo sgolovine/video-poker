@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { GAME_VARIANTS, getGameDefinition, type CreditAmount, type GameVariant, type HandRank } from '../engine';
+import { type CreditAmount, GAME_VARIANTS, type GameVariant, getGameDefinition, type HandRank } from '../engine';
 
 export interface GameStats {
   readonly handsPlayed: number;
@@ -25,6 +25,7 @@ interface StatsState {
   readonly globalStats: GameStats;
   readonly statsByVariant: StatsByVariant;
   readonly recordHand: (result: CompletedHandStatsInput) => void;
+  readonly resetStats: () => void;
 }
 
 const GLOBAL_HAND_ORDER: readonly HandRank[] = Object.freeze([
@@ -174,13 +175,22 @@ export function recordCompletedHand(
   };
 }
 
+export function createEmptyStatsState(): Pick<StatsState, 'globalStats' | 'statsByVariant'> {
+  return {
+    globalStats: createEmptyGameStats(),
+    statsByVariant: createEmptyStatsByVariant(),
+  };
+}
+
 export const useStatsStore = create<StatsState>()(
   persist(
     (set) => ({
-      globalStats: createEmptyGameStats(),
-      statsByVariant: createEmptyStatsByVariant(),
+      ...createEmptyStatsState(),
       recordHand: (result) => {
         set((state) => recordCompletedHand(state.globalStats, state.statsByVariant, result));
+      },
+      resetStats: () => {
+        set(createEmptyStatsState());
       },
     }),
     {
