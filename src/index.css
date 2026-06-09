@@ -90,6 +90,10 @@ textarea {
   font-family: "Roboto", Arial, sans-serif;
 }
 
+.settings-dialog-frame {
+  max-height: min(90svh, 760px);
+}
+
 .card-slot {
   container-type: inline-size;
 }
@@ -148,6 +152,38 @@ textarea {
     padding-inline: 0.25rem;
     font-size: 0.6875rem;
   }
+
+  .settings-dialog {
+    top: 0;
+    left: 0;
+    width: 100vw;
+    max-width: none;
+    height: var(--app-viewport-height);
+    max-height: none;
+    translate: none;
+    transform: none;
+    border-radius: 0;
+  }
+
+  .settings-dialog-frame {
+    height: 100%;
+    max-height: none;
+  }
+
+  .settings-dialog-header,
+  .settings-dialog-body,
+  .settings-dialog-footer {
+    padding-inline: max(1rem, env(safe-area-inset-left));
+  }
+
+  .settings-dialog-header,
+  .settings-dialog-footer {
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .settings-dialog-body {
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
 }
 
 @media (max-width: 760px) and (orientation: portrait) {
@@ -175,9 +211,69 @@ textarea {
   .bet-controls {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .bet-controls > :nth-child(1) {
+    order: 1;
+  }
+
+  .bet-controls > :nth-child(3) {
+    order: 2;
+  }
+
+  .bet-controls > :nth-child(4) {
+    order: 3;
+  }
+
+  .bet-controls > :nth-child(5) {
+    order: 4;
+  }
+
+  .bet-controls > :nth-child(2) {
+    order: 5;
+  }
+
+  .bet-controls > :nth-child(6) {
+    order: 6;
+  }
 }
 
 @media (max-width: 950px) and (max-height: 500px) and (orientation: landscape) {
+  .settings-dialog-header {
+    gap: 0.25rem;
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-bottom: 0.5rem;
+  }
+
+  .settings-dialog-header [data-slot="dialog-title"] {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .settings-dialog-header [data-slot="dialog-description"] {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+
+  .settings-dialog-body {
+    gap: 1rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .settings-dialog-footer {
+    padding-top: 0.5rem;
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+
+  .settings-dialog-footer button {
+    height: 2.25rem;
+  }
+
+  .settings-dialog > button {
+    top: max(0.5rem, env(safe-area-inset-top));
+    right: max(0.5rem, env(safe-area-inset-right));
+  }
+
   .video-shell[data-pay-table="hidden"] {
     grid-template-rows: minmax(0, 1fr) auto;
   }

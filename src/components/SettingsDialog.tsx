@@ -1,14 +1,14 @@
 import { useHotkey } from '@tanstack/react-hotkeys';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { HAND_LABELS, getPayTableRanks } from '../data/payTable';
+import { getPayTableRanks, HAND_LABELS } from '../data/payTable';
 import {
+  type CreditAmount,
+  clonePayTable,
   GAME_DEFINITIONS,
   GAME_VARIANTS,
-  clonePayTable,
-  getDefaultPayTable,
-  type CreditAmount,
   type GameVariant,
+  getDefaultPayTable,
   type HandRank,
   type PayTableConfig,
   type VariantPayTables,
@@ -300,8 +300,8 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
         </button>
       </DialogTrigger>
       <DialogContent className="settings-dialog border-[var(--settings-border)] bg-[var(--settings-panel)] p-0 text-white shadow-[0_0_0_4px_var(--settings-hover-blue),0_16px_60px_rgba(0,0,0,0.65)]">
-        <div className="grid max-h-[min(90svh,760px)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
-          <DialogHeader className="border-b border-[var(--settings-border)] px-6 py-5 text-left">
+        <div className="settings-dialog-frame grid max-h-[min(90svh,760px)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
+          <DialogHeader className="settings-dialog-header border-b border-[var(--settings-border)] px-6 py-5 text-left">
             <DialogTitle className="text-2xl text-[var(--settings-accent)] [text-shadow:2px_2px_0_var(--settings-hover-blue)]">
               SETTINGS
             </DialogTitle>
@@ -310,7 +310,7 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-6 overflow-y-auto px-6 py-5">
+          <div className="settings-dialog-body grid gap-6 overflow-y-auto px-6 py-5">
             <section className="grid gap-3" aria-labelledby="game-settings-title">
               <div className="grid gap-1">
                 <h2
@@ -550,7 +550,7 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
             </section>
           </div>
 
-          <DialogFooter className="border-t border-[var(--settings-border)] px-6 py-4">
+          <DialogFooter className="settings-dialog-footer border-t border-[var(--settings-border)] px-6 py-4">
             <DialogClose asChild>
               <Button
                 type="button"
