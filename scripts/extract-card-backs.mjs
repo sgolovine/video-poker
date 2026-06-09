@@ -3,8 +3,8 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const sourcePath = resolve(repoRoot, 'new_cards/PLAYING_CARD_BACKS.svg');
-const outputDir = resolve(repoRoot, 'assets/cards/backs');
+const sourcePath = resolve(repoRoot, 'src/assets/cards/PLAYING_CARD_BACKS.svg');
+const outputDir = resolve(repoRoot, 'src/assets/cards/backs');
 const source = readFileSync(sourcePath, 'utf8');
 
 const defs = extractElement('defs');

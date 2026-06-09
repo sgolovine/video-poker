@@ -1,13 +1,13 @@
-import { isJokerCard, type Card, type Rank, type Suit } from '../engine';
-import jokerCardUrl from '../../new_cards/JOKER-1.svg?url';
+import jokerCardUrl from '../assets/cards/JOKER-1.svg?url';
+import { type Card, isJokerCard, type Rank, type Suit } from '../engine';
 
-const FACE_CARD_URLS = import.meta.glob('../../new_cards/{CLUB,DIAMOND,HEART,SPADE}-*.svg', {
+const FACE_CARD_URLS = import.meta.glob('../assets/cards/{CLUB,DIAMOND,HEART,SPADE}-*.svg', {
   eager: true,
   import: 'default',
   query: '?url',
 }) as Record<string, string>;
 
-const BACK_CARD_URLS = import.meta.glob('../../assets/cards/backs/*.svg', {
+const BACK_CARD_URLS = import.meta.glob('../assets/cards/backs/*.svg', {
   eager: true,
   import: 'default',
   query: '?url',
@@ -56,7 +56,7 @@ export function getCardImage(card?: Card): string {
 
   const suit = SUIT_FILE_NAMES[card.suit];
   const rank = RANK_FILE_NAMES[card.rank];
-  return requireAsset(FACE_CARD_URLS[`../../new_cards/${suit}-${rank}.svg`]);
+  return requireAsset(FACE_CARD_URLS[`../assets/cards/${suit}-${rank}.svg`]);
 }
 
 function requireAsset(url: string | undefined): string {
