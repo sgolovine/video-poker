@@ -1,5 +1,5 @@
-import type { Card } from '../engine';
-import { Kbd } from './ui/kbd';
+import type { Card } from '../../../engine';
+import { Kbd } from '../../../components/ui/kbd';
 
 interface CardSlotProps {
   readonly card?: Card;

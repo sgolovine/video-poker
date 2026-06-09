@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
+import { HAND_LABELS } from '../../../data/payTable';
 import {
-  VariantVideoPokerEngine,
-  getDefaultPayTable,
   type Card,
   type CardIndex,
   type GameSnapshot,
   type GameVariant,
+  getDefaultPayTable,
   type HandRank,
   type PayTableConfig,
-} from '../engine';
-import { HAND_LABELS } from '../data/payTable';
-import { useStatsStore } from '../stores/stats';
-import { useUserSettingsStore, type GameSpeed } from '../stores/userSettings';
+  VariantVideoPokerEngine,
+} from '../../../engine';
+import { useStatsStore } from '../../../stores/stats';
+import { type GameSpeed, useUserSettingsStore } from '../../../stores/userSettings';
 
 interface LastResultView {
   readonly label: string;
@@ -87,7 +87,7 @@ export function useVideoPoker() {
   }, []);
 
   useEffect(() => {
-    if (engineVariantRef.current !== selectedVariant) {
+    if (engineVariantRef.current !== selectedVariant || getEngine().snapshot().credits !== balance) {
       replaceMachine(balance, selectedVariant, pays);
       return;
     }

@@ -1,5 +1,5 @@
-import { HAND_LABELS, getHandOrder } from '../data/payTable';
-import type { GameVariant, PayTableConfig } from '../engine';
+import { HAND_LABELS, getHandOrder } from '../../../data/payTable';
+import type { GameVariant, PayTableConfig } from '../../../engine';
 
 interface PayTableProps {
   readonly variant: GameVariant;

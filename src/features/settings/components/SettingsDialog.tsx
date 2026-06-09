@@ -1,8 +1,19 @@
-import { useHotkey } from '@tanstack/react-hotkeys';
-import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { getPayTableRanks, HAND_LABELS } from '../data/payTable';
+import { Button } from '../../../components/ui/button';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../../components/ui/dialog';
+import { Input } from '../../../components/ui/input';
+import { Label } from '../../../components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
+import { getPayTableRanks, HAND_LABELS } from '../../../data/payTable';
 import {
   type CreditAmount,
   clonePayTable,
@@ -13,42 +24,25 @@ import {
   type HandRank,
   type PayTableConfig,
   type VariantPayTables,
-} from '../engine';
-import { CARD_BACKS, DEFAULT_CARD_BACK_ID } from '../lib/cardAssets';
+} from '../../../engine';
+import { CARD_BACKS, DEFAULT_CARD_BACK_ID } from '../../../lib/cardAssets';
+import { useLayoutStore } from '../../../stores/layout';
+import { type GameStats, useStatsStore } from '../../../stores/stats';
 import {
   DEFAULT_BALANCE,
   DEFAULT_PAY_TABLES,
   DEFAULT_VARIANT,
   getDefaultShowKeyboardShortcuts,
   useUserSettingsStore,
-} from '../stores/userSettings';
-import { type GameStats, useStatsStore } from '../stores/stats';
-import { Button } from './ui/button';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from './ui/dialog';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+} from '../../../stores/userSettings';
 
 interface SettingsDialogProps {
-  readonly triggerClassName: string;
-  readonly triggerContent?: React.ReactNode;
   readonly onApplySettings: (settings: {
     readonly balance: CreditAmount;
     readonly variant: GameVariant;
     readonly pays: PayTableConfig;
   }) => void;
 }
-
-const KEY_PRESS_EFFECT_MS = 120;
 
 type EditablePayTable = Partial<Record<HandRank, [string, string, string, string, string]>>;
 
@@ -119,7 +113,9 @@ function formatHighestHand(stats: GameStats): string {
   return stats.highestHandWon ? HAND_LABELS[stats.highestHandWon] : 'None';
 }
 
-export function SettingsDialog({ triggerClassName, triggerContent, onApplySettings }: SettingsDialogProps) {
+export function SettingsDialog({ onApplySettings }: SettingsDialogProps) {
+  const open = useLayoutStore((state) => state.isSettingsDialogOpen);
+  const setOpen = useLayoutStore((state) => state.setSettingsDialogOpen);
   const balance = useUserSettingsStore((state) => state.balance);
   const selectedVariant = useUserSettingsStore((state) => state.selectedVariant);
   const payTablesByVariant = useUserSettingsStore((state) => state.payTablesByVariant);
@@ -130,7 +126,6 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
   const globalStats = useStatsStore((state) => state.globalStats);
   const statsByVariant = useStatsStore((state) => state.statsByVariant);
   const resetStats = useStatsStore((state) => state.resetStats);
-  const [open, setOpen] = useState(false);
   const [variantInput, setVariantInput] = useState<GameVariant>(selectedVariant);
   const [balanceInput, setBalanceInput] = useState(String(balance));
   const [payTableInput, setPayTableInput] = useState<EditablePayTable>(() =>
@@ -141,8 +136,6 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
   const [updateStatus, setUpdateStatus] = useState('');
   const [offlineReady, setOfflineReady] = useState(false);
   const [needRefresh, setNeedRefresh] = useState(false);
-  const [isTriggerKeyPressed, setIsTriggerKeyPressed] = useState(false);
-  const triggerKeyPressedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const reloadOnControllerChange = useRef(false);
 
   const parsedBalance = parseSafeInteger(balanceInput);
@@ -150,32 +143,6 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
   const canApplyBalance = parsedBalance !== undefined;
   const canApplyPayTable = parsedPayTable !== undefined;
   const visibleRanks = getPayTableRanks(variantInput).filter((rank) => rank !== 'nothing');
-
-  useHotkey(
-    'O',
-    () => {
-      setIsTriggerKeyPressed(true);
-
-      if (triggerKeyPressedTimer.current) {
-        clearTimeout(triggerKeyPressedTimer.current);
-      }
-
-      triggerKeyPressedTimer.current = setTimeout(() => {
-        setIsTriggerKeyPressed(false);
-      }, KEY_PRESS_EFFECT_MS);
-
-      setOpen(true);
-    },
-    { enabled: !open, preventDefault: true },
-  );
-
-  useEffect(() => {
-    return () => {
-      if (triggerKeyPressedTimer.current) {
-        clearTimeout(triggerKeyPressedTimer.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (!import.meta.env.PROD || !('serviceWorker' in navigator)) {
@@ -359,11 +326,6 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
         setOpen(nextOpen);
       }}
     >
-      <DialogTrigger asChild>
-        <button type="button" className={triggerClassName} data-key-pressed={isTriggerKeyPressed}>
-          {triggerContent ?? 'OPTIONS'}
-        </button>
-      </DialogTrigger>
       <DialogContent className="settings-dialog border-[var(--settings-border)] bg-[var(--settings-panel)] p-0 text-white shadow-[0_0_0_4px_var(--settings-hover-blue),0_16px_60px_rgba(0,0,0,0.65)]">
         <Tabs
           defaultValue="game"
@@ -649,27 +611,39 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
                 >
                   By Game
                 </h2>
-                <div className="overflow-x-auto border border-[var(--settings-border)]">
-                  <div className="grid min-w-[760px] grid-cols-[minmax(160px,1.2fr)_repeat(6,minmax(88px,1fr))_minmax(160px,1fr)] bg-[var(--settings-table)] text-sm">
-                    <div className="border-r border-b border-[var(--settings-border)] px-2 py-2 font-black text-[var(--settings-accent)]">
-                      Game
-                    </div>
-                    {['Hands', 'Wins', 'Rate', 'Spent', 'Earned', 'Net'].map((label) => (
-                      <div
-                        key={label}
-                        className="border-r border-b border-[var(--settings-border)] px-2 py-2 text-right font-black text-[var(--settings-accent)]"
-                      >
-                        {label}
-                      </div>
-                    ))}
-                    <div className="border-b border-[var(--settings-border)] px-2 py-2 font-black text-[var(--settings-accent)]">
-                      Best Hand
-                    </div>
-
-                    {GAME_VARIANTS.map((variant) => (
-                      <StatsTableRow key={variant} variant={variant} stats={statsByVariant[variant]} />
-                    ))}
-                  </div>
+                <div className="overflow-x-auto border border-[var(--settings-border)] bg-[var(--settings-table)]">
+                  <table className="w-full min-w-[680px] table-auto border-collapse text-sm">
+                    <thead>
+                      <tr>
+                        <th
+                          scope="col"
+                          className="border-r border-b border-[var(--settings-border)] px-2 py-2 text-left font-black whitespace-nowrap text-[var(--settings-accent)]"
+                        >
+                          Game
+                        </th>
+                        {['Hands', 'Wins', 'Rate', 'Spent', 'Earned', 'Net'].map((label) => (
+                          <th
+                            key={label}
+                            scope="col"
+                            className="border-r border-b border-[var(--settings-border)] px-2 py-2 text-right font-black whitespace-nowrap text-[var(--settings-accent)]"
+                          >
+                            {label}
+                          </th>
+                        ))}
+                        <th
+                          scope="col"
+                          className="border-b border-[var(--settings-border)] px-2 py-2 text-left font-black whitespace-nowrap text-[var(--settings-accent)]"
+                        >
+                          Best Hand
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {GAME_VARIANTS.map((variant) => (
+                        <StatsTableRow key={variant} variant={variant} stats={statsByVariant[variant]} />
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </section>
             </TabsContent>
@@ -769,19 +743,22 @@ function StatsTableRow({ variant, stats }: { readonly variant: GameVariant; read
   ];
 
   return (
-    <>
-      <div className="border-r border-b border-[var(--settings-border)] px-2 py-2 font-black text-[var(--settings-accent)]">
+    <tr>
+      <th
+        scope="row"
+        className="border-r border-b border-[var(--settings-border)] px-2 py-2 text-left font-black whitespace-nowrap text-[var(--settings-accent)]"
+      >
         {GAME_DEFINITIONS[variant].label}
-      </div>
+      </th>
       {numericCells.map((value, index) => (
-        <div key={index} className="border-r border-b border-[var(--settings-border)] px-2 py-2 text-right text-white">
+        <td key={index} className="border-r border-b border-[var(--settings-border)] px-2 py-2 text-right text-white">
           {value}
-        </div>
+        </td>
       ))}
-      <div className="border-b border-[var(--settings-border)] px-2 py-2 font-black text-white">
+      <td className="border-b border-[var(--settings-border)] px-2 py-2 font-black whitespace-nowrap text-white">
         {formatHighestHand(stats)}
-      </div>
-    </>
+      </td>
+    </tr>
   );
 }
 

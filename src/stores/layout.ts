@@ -2,7 +2,10 @@ import { create } from 'zustand';
 
 interface LayoutState {
   readonly isPayTableVisible: boolean;
+  readonly isSettingsDialogOpen: boolean;
+  readonly setSettingsDialogOpen: (isSettingsDialogOpen: boolean) => void;
   readonly togglePayTable: () => void;
+  readonly toggleSettingsDialog: () => void;
 }
 
 function shouldShowPayTableByDefault() {
@@ -15,5 +18,8 @@ function shouldShowPayTableByDefault() {
 
 export const useLayoutStore = create<LayoutState>()((set) => ({
   isPayTableVisible: shouldShowPayTableByDefault(),
+  isSettingsDialogOpen: false,
+  setSettingsDialogOpen: (isSettingsDialogOpen) => set({ isSettingsDialogOpen }),
   togglePayTable: () => set((state) => ({ isPayTableVisible: !state.isPayTableVisible })),
+  toggleSettingsDialog: () => set((state) => ({ isSettingsDialogOpen: !state.isSettingsDialogOpen })),
 }));

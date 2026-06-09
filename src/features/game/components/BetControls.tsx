@@ -1,10 +1,9 @@
 import { useHotkeys } from '@tanstack/react-hotkeys';
-import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
-import type { GamePhase } from '../engine';
-import { useLayoutStore } from '../stores/layout';
-import { GAME_SPEEDS, type GameSpeed } from '../stores/userSettings';
-import { Kbd } from './ui/kbd';
+import type { GamePhase } from '../../../engine';
+import { useLayoutStore } from '../../../stores/layout';
+import { GAME_SPEEDS, type GameSpeed } from '../../../stores/userSettings';
+import { Kbd } from '../../../components/ui/kbd';
 
 interface BetControlsProps {
   readonly bet: number;
@@ -16,11 +15,10 @@ interface BetControlsProps {
   readonly onBetChange: (bet: number) => void;
   readonly onDeal: () => void;
   readonly onDraw: () => void;
-  readonly onOptionsRender: (className: string, shortcut: React.ReactNode) => React.ReactNode;
   readonly onSpeedChange: () => void;
 }
 
-type PressedControl = 'pay-table' | 'speed' | 'bet-down' | 'bet-up' | 'play';
+type PressedControl = 'pay-table' | 'options' | 'speed' | 'bet-down' | 'bet-up' | 'play';
 
 const KEY_PRESS_EFFECT_MS = 120;
 
@@ -73,11 +71,11 @@ export function BetControls({
   onBetChange,
   onDeal,
   onDraw,
-  onOptionsRender,
   onSpeedChange,
 }: BetControlsProps) {
   const isPayTableVisible = useLayoutStore((state) => state.isPayTableVisible);
   const togglePayTable = useLayoutStore((state) => state.togglePayTable);
+  const openSettingsDialog = useLayoutStore((state) => state.setSettingsDialogOpen);
   const isDealt = phase === 'dealt';
   const activeChevronCount = GAME_SPEEDS.indexOf(speed) + 1;
   const nextSpeed = GAME_SPEEDS[activeChevronCount % GAME_SPEEDS.length];
@@ -118,6 +116,7 @@ export function BetControls({
   useHotkeys(
     [
       { hotkey: 'P', callback: () => runHotkey('pay-table', togglePayTable) },
+      { hotkey: 'O', callback: () => runHotkey('options', () => openSettingsDialog(true)) },
       { hotkey: 'S', callback: () => runHotkey('speed', onSpeedChange) },
       {
         hotkey: '-',
@@ -149,10 +148,14 @@ export function BetControls({
           showShortcut={showKeyboardShortcuts}
         />
       </button>
-      {onOptionsRender(
-        buttonClassName,
-        <ShortcutButtonContent label="OPTIONS" shortcut="O" disabled={false} showShortcut={showKeyboardShortcuts} />,
-      )}
+      <button
+        type="button"
+        className={buttonClassName}
+        data-key-pressed={pressedControl === 'options'}
+        onClick={() => openSettingsDialog(true)}
+      >
+        <ShortcutButtonContent label="OPTIONS" shortcut="O" disabled={false} showShortcut={showKeyboardShortcuts} />
+      </button>
       <button
         type="button"
         className={`${buttonClassName} inline-flex items-center justify-center gap-[7px] max-[760px]:gap-[3px]`}
