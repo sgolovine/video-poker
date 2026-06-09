@@ -1,22 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import {
-  type CreditAmount,
-  clonePayTable,
-  GAME_VARIANTS,
-  type GameVariant,
-  getDefaultPayTable,
-  type HandRank,
-  type PayTableConfig,
-  type VariantPayTables,
-} from '../engine';
+import type { CreditAmount, GameVariant, HandRank, PayTableConfig, VariantPayTables } from '../engine/types';
+import { clonePayTable, GAME_VARIANTS, getDefaultPayTable } from '../engine/util';
 import { DEFAULT_CARD_BACK_ID, isCardBackId } from '../lib/cardAssets';
 
 export const GAME_SPEEDS = ['slow', 'medium', 'fast'] as const;
 export const DEFAULT_BALANCE = 100;
 export const DEFAULT_VARIANT: GameVariant = 'JacksOrBetter';
 export const DEFAULT_PAY_TABLES = createDefaultPayTables();
-export const DEFAULT_PAYS = DEFAULT_PAY_TABLES[DEFAULT_VARIANT];
 const DEFAULT_SPEED: GameSpeed = 'medium';
 const MOBILE_SHORTCUT_MEDIA_QUERY = '(max-width: 760px)';
 

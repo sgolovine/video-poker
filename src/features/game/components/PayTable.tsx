@@ -1,5 +1,5 @@
 import { HAND_LABELS, getHandOrder } from '../../../data/payTable';
-import type { GameVariant, PayTableConfig } from '../../../engine';
+import type { GameVariant, PayTableConfig } from '../../../engine/types';
 
 interface PayTableProps {
   readonly variant: GameVariant;
@@ -25,7 +25,7 @@ export function PayTable({ variant, activeColumn, payTable }: PayTableProps) {
           </span>
           {(payTable[rank] ?? []).map((payout, index) => (
             <span
-              key={index}
+              key={`${rank}-${index + 1}`}
               className={[
                 'flex min-h-[30px] items-center justify-end border-r-2 border-[#a5a831] px-2 py-px text-[19px] leading-none font-bold text-[#ffff2f] [text-shadow:2px_2px_0_#0036a1,0_0_2px_#000] last:border-r-0 max-[1180px]:text-[15px] max-[760px]:min-h-[25px] max-[760px]:text-[13px]',
                 index + 1 === activeColumn ? 'bg-[#df000b]' : '',

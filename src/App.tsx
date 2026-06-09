@@ -1,5 +1,5 @@
 import { Game } from './features/game/Game';
-import { SettingsDialog } from './features/settings';
+import { SettingsDialog } from './features/settings/components/SettingsDialog';
 import { useUserSettingsStore } from './stores/userSettings';
 
 function App() {

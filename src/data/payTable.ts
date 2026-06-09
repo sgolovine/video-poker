@@ -1,4 +1,5 @@
-import { GAME_DEFINITIONS, type GameVariant, type HandRank } from '../engine';
+import type { GameVariant, HandRank } from '../engine/types';
+import { GAME_DEFINITIONS } from '../engine/util';
 
 export const HAND_LABELS: Readonly<Record<HandRank, string>> = Object.freeze({
   royalFlush: 'ROYAL FLUSH',

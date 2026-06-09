@@ -31,6 +31,8 @@ export const GAME_VARIANTS: readonly GameVariant[] = Object.freeze(['JacksOrBett
 const ROYAL_RANKS: ReadonlySet<StandardRank> = new Set(['10', 'J', 'Q', 'K', 'A']);
 const HIGH_PAIR_RANKS: ReadonlySet<StandardRank> = new Set(['J', 'Q', 'K', 'A']);
 const KINGS_OR_BETTER_RANKS: ReadonlySet<StandardRank> = new Set(['K', 'A']);
+const RANK_SET: ReadonlySet<Rank> = new Set(RANKS);
+const SUIT_SET: ReadonlySet<Suit> = new Set(SUITS);
 
 const SUIT_TO_SOLVER: Readonly<Record<Suit, string>> = Object.freeze({
   clubs: 'c',
@@ -314,7 +316,7 @@ function assertValidCards(variant: GameVariant, cards: readonly Card[], expected
       if (!allowsJoker) {
         throw new EngineError('invalidDeck');
       }
-    } else if (!RANKS.includes(card.rank) || !SUITS.includes(card.suit)) {
+    } else if (!RANK_SET.has(card.rank) || !SUIT_SET.has(card.suit)) {
       throw new EngineError('invalidDeck');
     }
 
@@ -433,7 +435,13 @@ function pairRanks(cards: readonly Card[]): StandardRank[] {
       counts.set(card.rank, (counts.get(card.rank) ?? 0) + 1);
     }
   }
-  return [...counts.entries()].filter(([, count]) => count >= 2).map(([rank]) => rank);
+  const ranks: StandardRank[] = [];
+  for (const [rank, count] of counts) {
+    if (count >= 2) {
+      ranks.push(rank);
+    }
+  }
+  return ranks;
 }
 
 function hasJacksOrBetterPair(cards: readonly Card[]): boolean {

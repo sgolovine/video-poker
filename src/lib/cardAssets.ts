@@ -1,5 +1,6 @@
 import jokerCardUrl from '../assets/cards/JOKER-1.svg?url';
-import { type Card, isJokerCard, type Rank, type Suit } from '../engine';
+import type { Card, Rank, Suit } from '../engine/types';
+import { isJokerCard } from '../engine/util';
 
 const FACE_CARD_URLS = import.meta.glob('../assets/cards/{CLUB,DIAMOND,HEART,SPADE}-*.svg', {
   eager: true,
@@ -56,14 +57,12 @@ export const CARD_BACKS: readonly CardBackOption[] = Object.freeze(
 );
 
 export const DEFAULT_CARD_BACK_ID = CARD_BACKS[0]?.id ?? 'back-01';
-export const DEFAULT_CARD_BACK_URL = getCardBackImage(DEFAULT_CARD_BACK_ID);
-export const CARD_BACK_URL = DEFAULT_CARD_BACK_URL;
 
 export function isCardBackId(value: unknown): value is string {
   return typeof value === 'string' && CARD_BACKS.some((cardBack) => cardBack.id === value);
 }
 
-export function getCardBackImage(cardBackId: string): string {
+function getCardBackImage(cardBackId: string): string {
   return CARD_BACKS.find((cardBack) => cardBack.id === cardBackId)?.url ?? requireAsset(CARD_BACKS[0]?.url);
 }
 

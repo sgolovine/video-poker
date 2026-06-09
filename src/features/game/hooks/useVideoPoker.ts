@@ -1,15 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 import { HAND_LABELS } from '../../../data/payTable';
-import {
-  type Card,
-  type CardIndex,
-  type GameSnapshot,
-  type GameVariant,
-  getDefaultPayTable,
-  type HandRank,
-  type PayTableConfig,
-  VariantVideoPokerEngine,
-} from '../../../engine';
+import { VariantVideoPokerEngine } from '../../../engine/engine';
+import type { Card, CardIndex, GameVariant, HandRank, PayTableConfig } from '../../../engine/types';
+import { getDefaultPayTable } from '../../../engine/util';
 import { useStatsStore } from '../../../stores/stats';
 import { type GameSpeed, useUserSettingsStore } from '../../../stores/userSettings';
 
@@ -23,6 +16,20 @@ interface SpeedTiming {
   readonly cardDelayMs: number;
   readonly nextHandDelayMs: number;
 }
+
+interface GameViewState {
+  readonly bet: number;
+  readonly heldIndexes: readonly number[];
+  readonly visibleHand: readonly (Card | undefined)[];
+  readonly activePayTableColumn?: number;
+  readonly inputLocked: boolean;
+}
+
+type GameViewAction =
+  | { readonly type: 'patch'; readonly patch: Partial<GameViewState> }
+  | { readonly type: 'revealCard'; readonly index: number; readonly card: Card }
+  | { readonly type: 'toggleHold'; readonly index: number }
+  | { readonly type: 'holdCard'; readonly index: number };
 
 const HAND_SIZE = 5;
 const PAY_TABLE_COLUMN_COUNT = 5;
@@ -40,6 +47,29 @@ const SPEED_TIMINGS: Readonly<Record<GameSpeed, SpeedTiming>> = {
     nextHandDelayMs: 180,
   },
 };
+
+function gameViewReducer(state: GameViewState, action: GameViewAction): GameViewState {
+  switch (action.type) {
+    case 'patch':
+      return { ...state, ...action.patch };
+    case 'revealCard': {
+      const nextHand = [...state.visibleHand];
+      nextHand[action.index] = action.card;
+      return { ...state, visibleHand: nextHand };
+    }
+    case 'toggleHold':
+      return {
+        ...state,
+        heldIndexes: state.heldIndexes.includes(action.index)
+          ? state.heldIndexes.filter((value) => value !== action.index)
+          : [...state.heldIndexes, action.index],
+      };
+    case 'holdCard':
+      return state.heldIndexes.includes(action.index)
+        ? state
+        : { ...state, heldIndexes: [...state.heldIndexes, action.index] };
+  }
+}
 
 export function useVideoPoker() {
   const speed = useUserSettingsStore((state) => state.speed);
@@ -63,14 +93,20 @@ export function useVideoPoker() {
     engineVariantRef.current = selectedVariant;
   }
 
-  const [snapshot, setSnapshot] = useState<GameSnapshot>(() => getEngine().snapshot());
-  const [bet, setBet] = useState(5);
-  const [heldIndexes, setHeldIndexes] = useState<number[]>([]);
-  const [visibleHand, setVisibleHand] = useState<readonly (Card | undefined)[]>([]);
-  const [activePayTableColumn, setActivePayTableColumn] = useState<number | undefined>(bet);
-  const [inputLocked, setInputLocked] = useState(false);
+  const [, forceGameRender] = useReducer((revision: number) => revision + 1, 0);
+  const [{ bet, heldIndexes, visibleHand, activePayTableColumn, inputLocked }, dispatchView] = useReducer(
+    gameViewReducer,
+    {
+      bet: 5,
+      heldIndexes: [],
+      visibleHand: [],
+      activePayTableColumn: 5,
+      inputLocked: false,
+    },
+  );
   const timerRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
+  const snapshot = getEngine().snapshot();
   const phase = snapshot.phase;
   const lastResult: LastResultView | undefined = snapshot.lastResult
     ? {
@@ -87,13 +123,36 @@ export function useVideoPoker() {
   }, []);
 
   useEffect(() => {
-    if (engineVariantRef.current !== selectedVariant || getEngine().snapshot().credits !== balance) {
-      replaceMachine(balance, selectedVariant, pays);
+    const engine = getEngine();
+    if (engineVariantRef.current !== selectedVariant || engine.snapshot().credits !== balance) {
+      timerRef.current.forEach((timer) => clearTimeout(timer));
+      timerRef.current = [];
+      const nextEngine = new VariantVideoPokerEngine({
+        variant: selectedVariant,
+        minBetCredits: 1,
+        maxBetCredits: 5,
+        initialCredits: balance,
+        payTable: pays,
+      });
+
+      engineRef.current = nextEngine;
+      engineVariantRef.current = selectedVariant;
+      setBalance(balance);
+      forceGameRender();
+      dispatchView({
+        type: 'patch',
+        patch: {
+          heldIndexes: [],
+          visibleHand: [],
+          activePayTableColumn: bet,
+          inputLocked: false,
+        },
+      });
       return;
     }
-    const nextSnapshot = getEngine().setPayTable(pays);
-    setSnapshot(nextSnapshot);
-  }, [balance, pays, selectedVariant]);
+    engine.setPayTable(pays);
+    forceGameRender();
+  }, [balance, bet, pays, selectedVariant, setBalance]);
 
   function getEngine() {
     const engine = engineRef.current;
@@ -115,8 +174,8 @@ export function useVideoPoker() {
 
   function refresh() {
     const nextSnapshot = getEngine().snapshot();
-    setSnapshot(nextSnapshot);
     setBalance(nextSnapshot.credits);
+    forceGameRender();
   }
 
   function replaceMachine(nextBalance: number, nextVariant: GameVariant, nextPays: PayTableConfig) {
@@ -132,17 +191,22 @@ export function useVideoPoker() {
     engineRef.current = nextEngine;
     engineVariantRef.current = nextVariant;
     setBalance(nextBalance);
-    setSnapshot(nextEngine.snapshot());
-    setHeldIndexes([]);
-    setVisibleHand([]);
-    setActivePayTableColumn(bet);
-    setInputLocked(false);
+    forceGameRender();
+    dispatchView({
+      type: 'patch',
+      patch: {
+        heldIndexes: [],
+        visibleHand: [],
+        activePayTableColumn: bet,
+        inputLocked: false,
+      },
+    });
   }
 
   function lockForAnimation(finalDelayMs: number) {
-    setInputLocked(true);
+    dispatchView({ type: 'patch', patch: { inputLocked: true } });
     queueTimer(() => {
-      setInputLocked(false);
+      dispatchView({ type: 'patch', patch: { inputLocked: false } });
     }, finalDelayMs);
   }
 
@@ -152,18 +216,14 @@ export function useVideoPoker() {
     const payTableAnimationMs = timing.cardDelayMs * (PAY_TABLE_COLUMN_COUNT + 1);
     const cardAnimationMs = timing.cardDelayMs * hand.length + 1;
 
-    setVisibleHand(Array<Card | undefined>(HAND_SIZE).fill(undefined));
-    setActivePayTableColumn(undefined);
+    dispatchView({ type: 'patch', patch: { visibleHand: Array<Card | undefined>(HAND_SIZE).fill(undefined) } });
+    dispatchView({ type: 'patch', patch: { activePayTableColumn: undefined } });
     lockForAnimation(Math.max(cardAnimationMs, payTableAnimationMs));
 
     hand.forEach((card, index) => {
       queueTimer(
         () => {
-          setVisibleHand((current) => {
-            const nextHand = [...current];
-            nextHand[index] = card;
-            return nextHand;
-          });
+          dispatchView({ type: 'revealCard', index, card });
         },
         timing.cardDelayMs * (index + 1),
       );
@@ -171,12 +231,12 @@ export function useVideoPoker() {
 
     Array.from({ length: PAY_TABLE_COLUMN_COUNT }, (_, index) => index + 1).forEach((column) => {
       queueTimer(() => {
-        setActivePayTableColumn(column);
+        dispatchView({ type: 'patch', patch: { activePayTableColumn: column } });
       }, timing.cardDelayMs * column);
     });
 
     queueTimer(() => {
-      setActivePayTableColumn(bet);
+      dispatchView({ type: 'patch', patch: { activePayTableColumn: bet } });
     }, payTableAnimationMs);
   }
 
@@ -186,17 +246,13 @@ export function useVideoPoker() {
     const drawIndexes = Array.from({ length: HAND_SIZE }, (_, index) => index).filter((index) => !heldSet.has(index));
     const baseHand = finalHand.map((card, index) => (heldSet.has(index) ? card : undefined));
 
-    setVisibleHand(baseHand);
+    dispatchView({ type: 'patch', patch: { visibleHand: baseHand } });
     lockForAnimation(timing.cardDelayMs * drawIndexes.length + timing.nextHandDelayMs);
 
     drawIndexes.forEach((cardIndex, revealIndex) => {
       queueTimer(
         () => {
-          setVisibleHand((current) => {
-            const nextHand = [...current];
-            nextHand[cardIndex] = finalHand[cardIndex];
-            return nextHand;
-          });
+          dispatchView({ type: 'revealCard', index: cardIndex, card: finalHand[cardIndex] });
         },
         timing.cardDelayMs * (revealIndex + 1),
       );
@@ -208,8 +264,7 @@ export function useVideoPoker() {
       return;
     }
     const normalizedBet = Math.min(5, Math.max(1, nextBet));
-    setBet(normalizedBet);
-    setActivePayTableColumn(normalizedBet);
+    dispatchView({ type: 'patch', patch: { bet: normalizedBet, activePayTableColumn: normalizedBet } });
   }
 
   function deal() {
@@ -217,7 +272,7 @@ export function useVideoPoker() {
       return;
     }
     const dealtHand = getEngine().deal(bet);
-    setHeldIndexes([]);
+    dispatchView({ type: 'patch', patch: { heldIndexes: [] } });
     refresh();
     animateInitialDeal(dealtHand.hand);
   }
@@ -229,7 +284,7 @@ export function useVideoPoker() {
     const heldSet = new Set<number>(heldIndexes);
     const result = getEngine().draw(heldIndexes as readonly CardIndex[]);
     recordHand(result);
-    setHeldIndexes([]);
+    dispatchView({ type: 'patch', patch: { heldIndexes: [] } });
     refresh();
     animateDraw(result.finalHand, heldSet);
   }
@@ -238,16 +293,14 @@ export function useVideoPoker() {
     if (phase !== 'dealt' || inputLocked) {
       return;
     }
-    setHeldIndexes((current) =>
-      current.includes(index) ? current.filter((value) => value !== index) : [...current, index],
-    );
+    dispatchView({ type: 'toggleHold', index });
   }
 
   function holdCard(index: number) {
     if (phase !== 'dealt' || inputLocked) {
       return;
     }
-    setHeldIndexes((current) => (current.includes(index) ? current : [...current, index]));
+    dispatchView({ type: 'holdCard', index });
   }
 
   return {

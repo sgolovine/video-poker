@@ -1,6 +1,6 @@
 import { useHotkeys } from '@tanstack/react-hotkeys';
-import { useEffect, useRef, useState } from 'react';
-import type { GamePhase } from '../../../engine';
+import { useState } from 'react';
+import type { GamePhase } from '../../../engine/types';
 import { useLayoutStore } from '../../../stores/layout';
 import { GAME_SPEEDS, type GameSpeed } from '../../../stores/userSettings';
 import { Kbd } from '../../../components/ui/kbd';
@@ -19,8 +19,9 @@ interface BetControlsProps {
 }
 
 type PressedControl = 'pay-table' | 'options' | 'speed' | 'bet-down' | 'bet-up' | 'play';
-
-const KEY_PRESS_EFFECT_MS = 120;
+interface PressedControlPulse {
+  readonly control: PressedControl;
+}
 
 function ShortcutBadge({
   shortcut,
@@ -82,30 +83,21 @@ export function BetControls({
   const canBetDown = !inputLocked && !isDealt && bet > 1;
   const canBetUp = !inputLocked && !isDealt && bet < 5;
   const canPlay = isDealt ? !inputLocked : canDeal;
-  const [pressedControl, setPressedControl] = useState<PressedControl>();
-  const pressedControlTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [pressedControl, setPressedControl] = useState<PressedControlPulse>();
 
   const buttonClassName =
-    'relative h-[62px] cursor-pointer whitespace-nowrap border-[3px] border-[#cab726] border-t-[#fff7a5] border-l-[#fff7a5] bg-[#ffe63d] px-3 text-[clamp(14px,1.18vw,22px)] leading-none font-black text-[#070707] [box-shadow:inset_-4px_-4px_0_#ad8f18,inset_3px_3px_0_#fff49a,3px_3px_0_#281900] transition-[transform,box-shadow,border-color] duration-75 ease-out enabled:active:translate-x-[3px] enabled:active:translate-y-[3px] enabled:active:border-[#ad8f18] enabled:active:border-t-[#8d7412] enabled:active:border-l-[#8d7412] enabled:active:[box-shadow:inset_3px_3px_0_#ad8f18,inset_-2px_-2px_0_#fff49a,0_0_0_#281900] enabled:data-[key-pressed=true]:translate-x-[3px] enabled:data-[key-pressed=true]:translate-y-[3px] enabled:data-[key-pressed=true]:border-[#ad8f18] enabled:data-[key-pressed=true]:border-t-[#8d7412] enabled:data-[key-pressed=true]:border-l-[#8d7412] enabled:data-[key-pressed=true]:[box-shadow:inset_3px_3px_0_#ad8f18,inset_-2px_-2px_0_#fff49a,0_0_0_#281900] focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-white disabled:cursor-default disabled:border-[#686868] disabled:border-t-[#9a9a9a] disabled:border-l-[#9a9a9a] disabled:bg-[#777] disabled:text-transparent disabled:opacity-100 disabled:[box-shadow:inset_-4px_-4px_0_#565656,inset_3px_3px_0_#a3a3a3,3px_3px_0_#281900] max-[1180px]:text-[15px] max-[760px]:h-12 max-[760px]:whitespace-normal max-[760px]:px-1 max-[760px]:text-[11px]';
+    'relative h-[62px] cursor-pointer whitespace-nowrap border-[3px] border-[#cab726] border-t-[#fff7a5] border-l-[#fff7a5] bg-[#ffe63d] px-3 text-[clamp(14px,1.18vw,22px)] leading-none font-black text-[#070707] [box-shadow:inset_-4px_-4px_0_#ad8f18,inset_3px_3px_0_#fff49a,3px_3px_0_#281900] transition-[transform,box-shadow,border-color] duration-75 ease-out enabled:active:translate-x-[3px] enabled:active:translate-y-[3px] enabled:active:border-[#ad8f18] enabled:active:border-t-[#8d7412] enabled:active:border-l-[#8d7412] enabled:active:[box-shadow:inset_3px_3px_0_#ad8f18,inset_-2px_-2px_0_#fff49a,0_0_0_#281900] enabled:data-[key-pressed=true]:animate-[control-press_120ms_ease-out] enabled:data-[key-pressed=true]:translate-x-[3px] enabled:data-[key-pressed=true]:translate-y-[3px] enabled:data-[key-pressed=true]:border-[#ad8f18] enabled:data-[key-pressed=true]:border-t-[#8d7412] enabled:data-[key-pressed=true]:border-l-[#8d7412] enabled:data-[key-pressed=true]:[box-shadow:inset_3px_3px_0_#ad8f18,inset_-2px_-2px_0_#fff49a,0_0_0_#281900] focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-white disabled:cursor-default disabled:border-[#686868] disabled:border-t-[#9a9a9a] disabled:border-l-[#9a9a9a] disabled:bg-[#777] disabled:text-transparent disabled:opacity-100 disabled:[box-shadow:inset_-4px_-4px_0_#565656,inset_3px_3px_0_#a3a3a3,3px_3px_0_#281900] max-[1180px]:text-[15px] max-[760px]:h-12 max-[760px]:whitespace-normal max-[760px]:px-1 max-[760px]:text-[11px]';
 
-  useEffect(() => {
-    return () => {
-      if (pressedControlTimer.current) {
-        clearTimeout(pressedControlTimer.current);
-      }
-    };
-  }, []);
+  function isControlPressed(control: PressedControl) {
+    return pressedControl?.control === control;
+  }
+
+  function clearPressedControl(control: PressedControl) {
+    setPressedControl((current) => (current?.control === control ? undefined : current));
+  }
 
   function pulseControl(control: PressedControl) {
-    setPressedControl(control);
-
-    if (pressedControlTimer.current) {
-      clearTimeout(pressedControlTimer.current);
-    }
-
-    pressedControlTimer.current = setTimeout(() => {
-      setPressedControl(undefined);
-    }, KEY_PRESS_EFFECT_MS);
+    setPressedControl({ control });
   }
 
   function runHotkey(control: PressedControl, action: () => void) {
@@ -137,9 +129,10 @@ export function BetControls({
       <button
         type="button"
         className={buttonClassName}
-        data-key-pressed={pressedControl === 'pay-table'}
+        data-key-pressed={isControlPressed('pay-table')}
         aria-pressed={isPayTableVisible}
         onClick={togglePayTable}
+        onAnimationEnd={() => clearPressedControl('pay-table')}
       >
         <ShortcutButtonContent
           label={isPayTableVisible ? 'HIDE PAYS' : 'SHOW PAYS'}
@@ -151,18 +144,20 @@ export function BetControls({
       <button
         type="button"
         className={buttonClassName}
-        data-key-pressed={pressedControl === 'options'}
+        data-key-pressed={isControlPressed('options')}
         onClick={() => openSettingsDialog(true)}
+        onAnimationEnd={() => clearPressedControl('options')}
       >
         <ShortcutButtonContent label="OPTIONS" shortcut="O" disabled={false} showShortcut={showKeyboardShortcuts} />
       </button>
       <button
         type="button"
         className={`${buttonClassName} inline-flex items-center justify-center gap-[7px] max-[760px]:gap-[3px]`}
-        data-key-pressed={pressedControl === 'speed'}
+        data-key-pressed={isControlPressed('speed')}
         aria-label={`Speed: ${speed}. Press to change to ${nextSpeed}.`}
         title={`Speed: ${speed}`}
         onClick={onSpeedChange}
+        onAnimationEnd={() => clearPressedControl('speed')}
       >
         <span className="min-w-0">SPEED</span>
         <span className="inline-flex items-center gap-0" aria-hidden="true">
@@ -186,9 +181,10 @@ export function BetControls({
       <button
         type="button"
         className={buttonClassName}
-        data-key-pressed={pressedControl === 'bet-down'}
+        data-key-pressed={isControlPressed('bet-down')}
         disabled={!canBetDown}
         onClick={() => onBetChange(bet - 1)}
+        onAnimationEnd={() => clearPressedControl('bet-down')}
       >
         {
           <ShortcutButtonContent
@@ -202,18 +198,20 @@ export function BetControls({
       <button
         type="button"
         className={buttonClassName}
-        data-key-pressed={pressedControl === 'bet-up'}
+        data-key-pressed={isControlPressed('bet-up')}
         disabled={!canBetUp}
         onClick={() => onBetChange(bet + 1)}
+        onAnimationEnd={() => clearPressedControl('bet-up')}
       >
         <ShortcutButtonContent label="BET UP" shortcut="+" disabled={!canBetUp} showShortcut={showKeyboardShortcuts} />
       </button>
       <button
         type="button"
         className={buttonClassName}
-        data-key-pressed={pressedControl === 'play'}
+        data-key-pressed={isControlPressed('play')}
         disabled={!canPlay}
         onClick={isDealt ? onDraw : onDeal}
+        onAnimationEnd={() => clearPressedControl('play')}
       >
         <ShortcutButtonContent
           label={isDealt ? 'DRAW' : 'DEAL'}

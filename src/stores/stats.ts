@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { type CreditAmount, GAME_VARIANTS, type GameVariant, getGameDefinition, type HandRank } from '../engine';
+import type { CreditAmount, GameVariant, HandRank } from '../engine/types';
+import { GAME_VARIANTS, getGameDefinition } from '../engine/util';
 
 export interface GameStats {
   readonly handsPlayed: number;
