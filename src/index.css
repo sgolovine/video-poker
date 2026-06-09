@@ -169,7 +169,8 @@ textarea {
     font-size: 0.6875rem;
   }
 
-  .settings-dialog {
+  .settings-dialog.settings-dialog[data-slot="dialog-content"] {
+    position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
@@ -199,6 +200,26 @@ textarea {
 
   .settings-dialog-body {
     padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+@media (hover: none) and (pointer: coarse) and (max-width: 950px) {
+  .settings-dialog.settings-dialog[data-slot="dialog-content"] {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    max-width: none;
+    height: var(--app-viewport-height);
+    max-height: none;
+    translate: none;
+    transform: none;
+    border-radius: 0;
+  }
+
+  .settings-dialog-frame {
+    height: 100%;
+    max-height: none;
   }
 }
 
