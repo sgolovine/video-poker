@@ -34,6 +34,7 @@ import {
 } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
 interface SettingsDialogProps {
   readonly triggerClassName: string;
@@ -300,254 +301,281 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
         </button>
       </DialogTrigger>
       <DialogContent className="settings-dialog border-[var(--settings-border)] bg-[var(--settings-panel)] p-0 text-white shadow-[0_0_0_4px_var(--settings-hover-blue),0_16px_60px_rgba(0,0,0,0.65)]">
-        <div className="settings-dialog-frame grid max-h-[min(90svh,760px)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
+        <Tabs
+          defaultValue="game"
+          className="settings-dialog-frame grid max-h-[min(90svh,760px)] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden"
+        >
           <DialogHeader className="settings-dialog-header border-b border-[var(--settings-border)] px-6 py-5 text-left">
             <DialogTitle className="text-2xl text-[var(--settings-accent)] [text-shadow:2px_2px_0_var(--settings-hover-blue)]">
               SETTINGS
             </DialogTitle>
-            <DialogDescription className="text-[var(--settings-secondary-text)]">
-              Updates apply to the current machine and are saved in this browser.
+            <DialogDescription className="sr-only">
+              Configure game, display, paytable, and app settings.
             </DialogDescription>
+            <TabsList
+              aria-label="Settings sections"
+              className="grid h-10 w-full grid-cols-4 overflow-hidden rounded-sm border border-[var(--settings-border)] bg-[var(--settings-inset)] p-1 text-[var(--settings-secondary-text)] group-data-horizontal/tabs:h-10"
+            >
+              {['game', 'display', 'paytables', 'app'].map((tab) => (
+                <TabsTrigger
+                  key={tab}
+                  value={tab}
+                  className="h-full min-h-0 rounded-sm px-2 font-black text-[var(--settings-accent)] uppercase hover:bg-[var(--settings-hover-blue)] hover:text-[var(--settings-accent)] data-active:bg-[var(--settings-button)] data-active:text-[var(--settings-button-text)]"
+                >
+                  {tab}
+                </TabsTrigger>
+              ))}
+            </TabsList>
           </DialogHeader>
 
-          <div className="settings-dialog-body grid gap-6 overflow-y-auto px-6 py-5">
-            <section className="grid gap-3" aria-labelledby="game-settings-title">
-              <div className="grid gap-1">
-                <h2
-                  id="game-settings-title"
-                  className="text-base leading-none font-black text-[var(--settings-accent)]"
-                >
-                  Game
-                </h2>
-                <p className="text-sm text-[var(--settings-secondary-text)]">Choose the active video poker machine.</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {GAME_VARIANTS.map((variant) => (
-                  <Button
-                    key={variant}
-                    type="button"
-                    variant={variant === selectedVariant ? 'default' : 'outline'}
-                    aria-pressed={variant === selectedVariant}
-                    onClick={() => applyVariant(variant)}
-                    className={
-                      variant === selectedVariant
-                        ? 'bg-[var(--settings-button)] font-black text-[var(--settings-button-text)] hover:bg-[var(--settings-button-hover)]'
-                        : 'border-[var(--settings-border)] bg-transparent font-black text-[var(--settings-accent)] hover:bg-[var(--settings-hover-blue)] hover:text-[var(--settings-accent)]'
-                    }
-                  >
-                    {GAME_DEFINITIONS[variant].label}
-                  </Button>
-                ))}
-              </div>
-            </section>
-
-            <section className="grid gap-3" aria-labelledby="balance-settings-title">
-              <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="settings-dialog-body overflow-y-auto px-6 py-5">
+            <TabsContent value="game" className="mt-0 grid gap-6">
+              <section className="grid gap-3" aria-labelledby="game-settings-title">
                 <div className="grid gap-1">
                   <h2
-                    id="balance-settings-title"
+                    id="game-settings-title"
                     className="text-base leading-none font-black text-[var(--settings-accent)]"
                   >
-                    Bank Balance
+                    Game
                   </h2>
                   <p className="text-sm text-[var(--settings-secondary-text)]">
-                    Set the available credits on the meter.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  disabled={!canApplyBalance}
-                  onClick={applyBalance}
-                  className="bg-[var(--settings-button)] font-black text-[var(--settings-button-text)] hover:bg-[var(--settings-button-hover)]"
-                >
-                  Update Balance
-                </Button>
-              </div>
-              <div className="grid max-w-xs gap-2">
-                <Label htmlFor="settings-balance" className="text-[var(--settings-accent)]">
-                  Balance
-                </Label>
-                <Input
-                  id="settings-balance"
-                  inputMode="numeric"
-                  min={0}
-                  step={1}
-                  value={balanceInput}
-                  onChange={(event) => setBalanceInput(event.target.value)}
-                  className="border-[var(--settings-border)] bg-[var(--settings-table)] text-white"
-                  aria-invalid={!canApplyBalance}
-                />
-              </div>
-            </section>
-
-            <section className="grid gap-3" aria-labelledby="paytable-settings-title">
-              <div className="flex flex-wrap items-end justify-between gap-3">
-                <div className="grid gap-1">
-                  <h2
-                    id="paytable-settings-title"
-                    className="text-base leading-none font-black text-[var(--settings-accent)]"
-                  >
-                    Paytables
-                  </h2>
-                  <p className="text-sm text-[var(--settings-secondary-text)]">
-                    Edit payouts for one through five credits.
+                    Choose the active video poker machine.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  {GAME_VARIANTS.map((variant) => (
+                    <Button
+                      key={variant}
+                      type="button"
+                      variant={variant === selectedVariant ? 'default' : 'outline'}
+                      aria-pressed={variant === selectedVariant}
+                      onClick={() => applyVariant(variant)}
+                      className={
+                        variant === selectedVariant
+                          ? 'bg-[var(--settings-button)] font-black text-[var(--settings-button-text)] hover:bg-[var(--settings-button-hover)]'
+                          : 'border-[var(--settings-border)] bg-transparent font-black text-[var(--settings-accent)] hover:bg-[var(--settings-hover-blue)] hover:text-[var(--settings-accent)]'
+                      }
+                    >
+                      {GAME_DEFINITIONS[variant].label}
+                    </Button>
+                  ))}
+                </div>
+              </section>
+
+              <section
+                className="grid gap-3 border-t border-[var(--settings-border)] pt-5"
+                aria-labelledby="balance-settings-title"
+              >
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div className="grid gap-1">
+                    <h2
+                      id="balance-settings-title"
+                      className="text-base leading-none font-black text-[var(--settings-accent)]"
+                    >
+                      Bank Balance
+                    </h2>
+                    <p className="text-sm text-[var(--settings-secondary-text)]">
+                      Set the available credits on the meter.
+                    </p>
+                  </div>
                   <Button
                     type="button"
-                    variant="outline"
-                    onClick={resetPayTable}
-                    className="border-[var(--settings-border)] bg-transparent font-black text-[var(--settings-accent)] hover:bg-[var(--settings-hover-blue)] hover:text-[var(--settings-accent)]"
-                  >
-                    Reset Paytables
-                  </Button>
-                  <Button
-                    type="button"
-                    disabled={!canApplyPayTable}
-                    onClick={applyPayTable}
+                    disabled={!canApplyBalance}
+                    onClick={applyBalance}
                     className="bg-[var(--settings-button)] font-black text-[var(--settings-button-text)] hover:bg-[var(--settings-button-hover)]"
                   >
-                    Update Paytables
+                    Update Balance
                   </Button>
                 </div>
-              </div>
-
-              <div className="overflow-x-auto border border-[var(--settings-border)]">
-                <div className="grid min-w-[650px] grid-cols-[minmax(180px,1.4fr)_repeat(5,minmax(72px,1fr))] bg-[var(--settings-table)] text-sm">
-                  <div className="border-r border-b border-[var(--settings-border)] px-2 py-2 font-black text-[var(--settings-accent)]">
-                    Hand
-                  </div>
-                  {[1, 2, 3, 4, 5].map((bet) => (
-                    <div
-                      key={bet}
-                      className="border-r border-b border-[var(--settings-border)] px-2 py-2 text-right font-black text-[var(--settings-accent)] last:border-r-0"
-                    >
-                      {bet}
-                    </div>
-                  ))}
-                  {visibleRanks.map((rank) => (
-                    <PayTableRow
-                      key={rank}
-                      rank={rank}
-                      row={payTableInput[rank] ?? ['0', '0', '0', '0', '0']}
-                      onChange={(betIndex, value) => {
-                        setPayTableInput((current) => ({
-                          ...current,
-                          [rank]: (current[rank] ?? ['0', '0', '0', '0', '0']).map((payout, index) =>
-                            index === betIndex ? value : payout,
-                          ) as [string, string, string, string, string],
-                        }));
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            <section
-              className="grid gap-3 border-t border-[var(--settings-border)] pt-5"
-              aria-labelledby="storage-settings-title"
-            >
-              <div className="grid gap-1">
-                <h2
-                  id="storage-settings-title"
-                  className="text-base leading-none font-black text-[var(--settings-accent)]"
-                >
-                  Local Storage
-                </h2>
-                <p className="text-sm text-[var(--settings-secondary-text)]">
-                  Clear saved balance, speed, paytables, and any other local data for this origin.
-                </p>
-              </div>
-              <Button type="button" variant="destructive" onClick={wipeLocalData} className="w-fit font-black">
-                Wipe Local Data
-              </Button>
-            </section>
-
-            <section
-              className="grid gap-3 border-t border-[var(--settings-border)] pt-5"
-              aria-labelledby="display-settings-title"
-            >
-              <div className="grid gap-1">
-                <h2
-                  id="display-settings-title"
-                  className="text-base leading-none font-black text-[var(--settings-accent)]"
-                >
-                  Display
-                </h2>
-                <p className="text-sm text-[var(--settings-secondary-text)]">
-                  Control the table display and card style.
-                </p>
-              </div>
-              <div className="grid gap-4">
-                <label className="flex w-fit items-center gap-3 font-black text-[var(--settings-accent)]">
-                  <input
-                    type="checkbox"
-                    checked={showKeyboardShortcuts}
-                    onChange={(event) => setShowKeyboardShortcuts(event.target.checked)}
-                    className="h-5 w-5 accent-[var(--settings-button)]"
+                <div className="grid max-w-xs gap-2">
+                  <Label htmlFor="settings-balance" className="text-[var(--settings-accent)]">
+                    Balance
+                  </Label>
+                  <Input
+                    id="settings-balance"
+                    inputMode="numeric"
+                    min={0}
+                    step={1}
+                    value={balanceInput}
+                    onChange={(event) => setBalanceInput(event.target.value)}
+                    className="border-[var(--settings-border)] bg-[var(--settings-table)] text-white"
+                    aria-invalid={!canApplyBalance}
                   />
-                  Show Keyboard Shortcuts
-                </label>
+                </div>
+              </section>
+            </TabsContent>
 
-                <div className="grid gap-2">
-                  <Label className="text-[var(--settings-accent)]">Card Back</Label>
-                  <div className="grid grid-cols-[repeat(auto-fill,minmax(56px,1fr))] gap-2 rounded-sm border border-[var(--settings-border)] bg-[var(--settings-inset)] p-3">
-                    {CARD_BACKS.map((cardBack) => (
-                      <button
-                        key={cardBack.id}
-                        type="button"
-                        aria-label={cardBack.label}
-                        aria-pressed={cardBack.id === cardBackId}
-                        onClick={() => setCardBackId(cardBack.id)}
-                        className="grid min-h-24 place-items-center rounded-sm border-2 border-transparent bg-transparent p-1 outline-offset-2 transition enabled:cursor-pointer hover:border-[var(--settings-accent)] focus-visible:outline-2 focus-visible:outline-[var(--settings-accent)] aria-pressed:border-[var(--settings-button)] aria-pressed:bg-[var(--settings-hover-blue)]"
+            <TabsContent value="display" className="mt-0 grid gap-6">
+              <section className="grid gap-3" aria-labelledby="display-settings-title">
+                <div className="grid gap-1">
+                  <h2
+                    id="display-settings-title"
+                    className="text-base leading-none font-black text-[var(--settings-accent)]"
+                  >
+                    Display
+                  </h2>
+                  <p className="text-sm text-[var(--settings-secondary-text)]">
+                    Control the table display and card style.
+                  </p>
+                </div>
+                <div className="grid gap-4">
+                  <label className="flex w-fit items-center gap-3 font-black text-[var(--settings-accent)]">
+                    <input
+                      type="checkbox"
+                      checked={showKeyboardShortcuts}
+                      onChange={(event) => setShowKeyboardShortcuts(event.target.checked)}
+                      className="h-5 w-5 accent-[var(--settings-button)]"
+                    />
+                    Show Keyboard Shortcuts
+                  </label>
+
+                  <div className="grid gap-2">
+                    <Label className="text-[var(--settings-accent)]">Card Back</Label>
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(56px,1fr))] gap-2 rounded-sm border border-[var(--settings-border)] bg-[var(--settings-inset)] p-3">
+                      {CARD_BACKS.map((cardBack) => (
+                        <button
+                          key={cardBack.id}
+                          type="button"
+                          aria-label={cardBack.label}
+                          aria-pressed={cardBack.id === cardBackId}
+                          onClick={() => setCardBackId(cardBack.id)}
+                          className="grid min-h-24 place-items-center rounded-sm border-2 border-transparent bg-transparent p-1 outline-offset-2 transition enabled:cursor-pointer hover:border-[var(--settings-accent)] focus-visible:outline-2 focus-visible:outline-[var(--settings-accent)] aria-pressed:border-[var(--settings-button)] aria-pressed:bg-[var(--settings-hover-blue)]"
+                        >
+                          <img
+                            src={cardBack.url}
+                            alt=""
+                            className="aspect-[169/244] h-20 rounded-sm object-contain [filter:drop-shadow(1px_1px_0_#000)]"
+                            draggable="false"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </TabsContent>
+
+            <TabsContent value="paytables" className="mt-0 grid gap-6">
+              <section className="grid gap-3" aria-labelledby="paytable-settings-title">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div className="grid gap-1">
+                    <h2
+                      id="paytable-settings-title"
+                      className="text-base leading-none font-black text-[var(--settings-accent)]"
+                    >
+                      Paytables
+                    </h2>
+                    <p className="text-sm text-[var(--settings-secondary-text)]">
+                      Edit payouts for one through five credits.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={resetPayTable}
+                      className="border-[var(--settings-border)] bg-transparent font-black text-[var(--settings-accent)] hover:bg-[var(--settings-hover-blue)] hover:text-[var(--settings-accent)]"
+                    >
+                      Reset Paytables
+                    </Button>
+                    <Button
+                      type="button"
+                      disabled={!canApplyPayTable}
+                      onClick={applyPayTable}
+                      className="bg-[var(--settings-button)] font-black text-[var(--settings-button-text)] hover:bg-[var(--settings-button-hover)]"
+                    >
+                      Update Paytables
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto border border-[var(--settings-border)]">
+                  <div className="grid min-w-[650px] grid-cols-[minmax(180px,1.4fr)_repeat(5,minmax(72px,1fr))] bg-[var(--settings-table)] text-sm">
+                    <div className="border-r border-b border-[var(--settings-border)] px-2 py-2 font-black text-[var(--settings-accent)]">
+                      Hand
+                    </div>
+                    {[1, 2, 3, 4, 5].map((bet) => (
+                      <div
+                        key={bet}
+                        className="border-r border-b border-[var(--settings-border)] px-2 py-2 text-right font-black text-[var(--settings-accent)] last:border-r-0"
                       >
-                        <img
-                          src={cardBack.url}
-                          alt=""
-                          className="aspect-[169/244] h-20 rounded-sm object-contain [filter:drop-shadow(1px_1px_0_#000)]"
-                          draggable="false"
-                        />
-                      </button>
+                        {bet}
+                      </div>
+                    ))}
+                    {visibleRanks.map((rank) => (
+                      <PayTableRow
+                        key={rank}
+                        rank={rank}
+                        row={payTableInput[rank] ?? ['0', '0', '0', '0', '0']}
+                        onChange={(betIndex, value) => {
+                          setPayTableInput((current) => ({
+                            ...current,
+                            [rank]: (current[rank] ?? ['0', '0', '0', '0', '0']).map((payout, index) =>
+                              index === betIndex ? value : payout,
+                            ) as [string, string, string, string, string],
+                          }));
+                        }}
+                      />
                     ))}
                   </div>
                 </div>
-              </div>
-            </section>
+              </section>
+            </TabsContent>
 
-            <section
-              className="grid gap-3 border-t border-[var(--settings-border)] pt-5"
-              aria-labelledby="app-settings-title"
-            >
-              <div className="grid gap-1">
-                <h2 id="app-settings-title" className="text-base leading-none font-black text-[var(--settings-accent)]">
-                  App
-                </h2>
-                <p className="text-sm text-[var(--settings-secondary-text)]">Version {__APP_VERSION__}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {needRefresh ? (
-                  <Button
-                    type="button"
-                    onClick={installUpdate}
-                    className="bg-[var(--settings-button)] font-black text-[var(--settings-button-text)] hover:bg-[var(--settings-button-hover)]"
+            <TabsContent value="app" className="mt-0 grid gap-6">
+              <section className="grid gap-3" aria-labelledby="storage-settings-title">
+                <div className="grid gap-1">
+                  <h2
+                    id="storage-settings-title"
+                    className="text-base leading-none font-black text-[var(--settings-accent)]"
                   >
-                    Install Update
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    disabled={isCheckingForUpdate}
-                    onClick={checkForUpdates}
-                    className="bg-[var(--settings-button)] font-black text-[var(--settings-button-text)] hover:bg-[var(--settings-button-hover)]"
+                    Local Storage
+                  </h2>
+                  <p className="text-sm text-[var(--settings-secondary-text)]">
+                    Clear saved balance, speed, paytables, and any other local data for this origin.
+                  </p>
+                </div>
+                <Button type="button" variant="destructive" onClick={wipeLocalData} className="w-fit font-black">
+                  Wipe Local Data
+                </Button>
+              </section>
+
+              <section
+                className="grid gap-3 border-t border-[var(--settings-border)] pt-5"
+                aria-labelledby="app-settings-title"
+              >
+                <div className="grid gap-1">
+                  <h2
+                    id="app-settings-title"
+                    className="text-base leading-none font-black text-[var(--settings-accent)]"
                   >
-                    {isCheckingForUpdate ? 'Checking...' : 'Check for Updates'}
-                  </Button>
-                )}
-                {pwaStatus ? <p className="text-sm text-[var(--settings-secondary-text)]">{pwaStatus}</p> : null}
-              </div>
-            </section>
+                    App
+                  </h2>
+                  <p className="text-sm text-[var(--settings-secondary-text)]">Version {__APP_VERSION__}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {needRefresh ? (
+                    <Button
+                      type="button"
+                      onClick={installUpdate}
+                      className="bg-[var(--settings-button)] font-black text-[var(--settings-button-text)] hover:bg-[var(--settings-button-hover)]"
+                    >
+                      Install Update
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      disabled={isCheckingForUpdate}
+                      onClick={checkForUpdates}
+                      className="bg-[var(--settings-button)] font-black text-[var(--settings-button-text)] hover:bg-[var(--settings-button-hover)]"
+                    >
+                      {isCheckingForUpdate ? 'Checking...' : 'Check for Updates'}
+                    </Button>
+                  )}
+                  {pwaStatus ? <p className="text-sm text-[var(--settings-secondary-text)]">{pwaStatus}</p> : null}
+                </div>
+              </section>
+            </TabsContent>
           </div>
 
           <DialogFooter className="settings-dialog-footer border-t border-[var(--settings-border)] px-6 py-4">
@@ -561,7 +589,7 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
               </Button>
             </DialogClose>
           </DialogFooter>
-        </div>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

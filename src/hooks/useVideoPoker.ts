@@ -10,6 +10,7 @@ import {
   type PayTableConfig,
 } from '../engine';
 import { HAND_LABELS } from '../data/payTable';
+import { useStatsStore } from '../stores/stats';
 import { useUserSettingsStore, type GameSpeed } from '../stores/userSettings';
 
 interface LastResultView {
@@ -46,6 +47,7 @@ export function useVideoPoker() {
   const selectedVariant = useUserSettingsStore((state) => state.selectedVariant);
   const payTablesByVariant = useUserSettingsStore((state) => state.payTablesByVariant);
   const setBalance = useUserSettingsStore((state) => state.setBalance);
+  const recordHand = useStatsStore((state) => state.recordHand);
   const engineRef = useRef<VariantVideoPokerEngine | undefined>(undefined);
   const engineVariantRef = useRef<GameVariant | undefined>(undefined);
   const pays = payTablesByVariant[selectedVariant] ?? getDefaultPayTable(selectedVariant);
@@ -226,6 +228,7 @@ export function useVideoPoker() {
     }
     const heldSet = new Set<number>(heldIndexes);
     const result = getEngine().draw(heldIndexes as readonly CardIndex[]);
+    recordHand(result);
     setHeldIndexes([]);
     refresh();
     animateDraw(result.finalHand, heldSet);

@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import {
-  GAME_VARIANTS,
-  clonePayTable,
-  getDefaultPayTable,
   type CreditAmount,
+  clonePayTable,
+  GAME_VARIANTS,
   type GameVariant,
+  getDefaultPayTable,
   type HandRank,
   type PayTableConfig,
   type VariantPayTables,
