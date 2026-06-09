@@ -1,19 +1,10 @@
-import type { HandRank } from '../engine';
+import { GAME_DEFINITIONS, type GameVariant, type HandRank } from '../engine';
 
-export const HAND_ORDER: readonly HandRank[] = [
-  'royalFlush',
-  'straightFlush',
-  'fourOfAKind',
-  'fullHouse',
-  'flush',
-  'straight',
-  'threeOfAKind',
-  'twoPair',
-  'jacksOrBetter',
-];
-
-export const HAND_LABELS: Readonly<Record<HandRank, string>> = {
+export const HAND_LABELS: Readonly<Record<HandRank, string>> = Object.freeze({
   royalFlush: 'ROYAL FLUSH',
+  fourDeuces: 'FOUR DEUCES',
+  wildRoyalFlush: 'WILD ROYAL FLUSH',
+  fiveOfAKind: 'FIVE OF A KIND',
   straightFlush: 'STRAIGHT FLUSH',
   fourOfAKind: 'FOUR OF A KIND',
   fullHouse: 'FULL HOUSE',
@@ -22,5 +13,18 @@ export const HAND_LABELS: Readonly<Record<HandRank, string>> = {
   threeOfAKind: 'THREE OF A KIND',
   twoPair: 'TWO PAIR',
   jacksOrBetter: 'JACKS OR BETTER',
+  kingsOrBetter: 'KINGS OR BETTER',
   nothing: 'GAME OVER',
-};
+});
+
+export function getHandOrder(variant: GameVariant): readonly HandRank[] {
+  return GAME_DEFINITIONS[variant].handOrder;
+}
+
+export function getPayTableRanks(variant: GameVariant): readonly HandRank[] {
+  return GAME_DEFINITIONS[variant].payTableRanks;
+}
+
+export function getGameLabel(variant: GameVariant): string {
+  return GAME_DEFINITIONS[variant].label.toUpperCase();
+}

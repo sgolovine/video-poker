@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  JacksOrBetterVideoPokerEngine,
+  VariantVideoPokerEngine,
+  getDefaultPayTable,
   type Card,
   type CardIndex,
   type GameSnapshot,
+  type GameVariant,
   type HandRank,
   type PayTableConfig,
 } from '../engine';
@@ -41,22 +43,25 @@ const SPEED_TIMINGS: Readonly<Record<GameSpeed, SpeedTiming>> = {
 export function useVideoPoker() {
   const speed = useUserSettingsStore((state) => state.speed);
   const balance = useUserSettingsStore((state) => state.balance);
-  const pays = useUserSettingsStore((state) => state.pays);
+  const selectedVariant = useUserSettingsStore((state) => state.selectedVariant);
+  const payTablesByVariant = useUserSettingsStore((state) => state.payTablesByVariant);
   const setBalance = useUserSettingsStore((state) => state.setBalance);
-  const engineRef = useRef<JacksOrBetterVideoPokerEngine | undefined>(undefined);
+  const engineRef = useRef<VariantVideoPokerEngine | undefined>(undefined);
+  const engineVariantRef = useRef<GameVariant | undefined>(undefined);
+  const pays = payTablesByVariant[selectedVariant] ?? getDefaultPayTable(selectedVariant);
 
   if (!engineRef.current) {
-    engineRef.current = new JacksOrBetterVideoPokerEngine({
-      variant: 'JacksOrBetter',
+    engineRef.current = new VariantVideoPokerEngine({
+      variant: selectedVariant,
       minBetCredits: 1,
       maxBetCredits: 5,
       initialCredits: balance,
       payTable: pays,
     });
+    engineVariantRef.current = selectedVariant;
   }
 
-  const engine = engineRef.current;
-  const [snapshot, setSnapshot] = useState<GameSnapshot>(() => engine.snapshot());
+  const [snapshot, setSnapshot] = useState<GameSnapshot>(() => getEngine().snapshot());
   const [bet, setBet] = useState(5);
   const [heldIndexes, setHeldIndexes] = useState<number[]>([]);
   const [visibleHand, setVisibleHand] = useState<readonly (Card | undefined)[]>([]);
@@ -80,9 +85,21 @@ export function useVideoPoker() {
   }, []);
 
   useEffect(() => {
-    const nextSnapshot = engine.setPayTable(pays);
+    if (engineVariantRef.current !== selectedVariant) {
+      replaceMachine(balance, selectedVariant, pays);
+      return;
+    }
+    const nextSnapshot = getEngine().setPayTable(pays);
     setSnapshot(nextSnapshot);
-  }, [engine, pays]);
+  }, [balance, pays, selectedVariant]);
+
+  function getEngine() {
+    const engine = engineRef.current;
+    if (!engine) {
+      throw new Error('Video poker engine has not been initialized.');
+    }
+    return engine;
+  }
 
   function clearTimers() {
     timerRef.current.forEach((timer) => clearTimeout(timer));
@@ -95,15 +112,15 @@ export function useVideoPoker() {
   }
 
   function refresh() {
-    const nextSnapshot = engine.snapshot();
+    const nextSnapshot = getEngine().snapshot();
     setSnapshot(nextSnapshot);
     setBalance(nextSnapshot.credits);
   }
 
-  function replaceMachine(nextBalance: number, nextPays: PayTableConfig) {
+  function replaceMachine(nextBalance: number, nextVariant: GameVariant, nextPays: PayTableConfig) {
     clearTimers();
-    const nextEngine = new JacksOrBetterVideoPokerEngine({
-      variant: 'JacksOrBetter',
+    const nextEngine = new VariantVideoPokerEngine({
+      variant: nextVariant,
       minBetCredits: 1,
       maxBetCredits: 5,
       initialCredits: nextBalance,
@@ -111,6 +128,7 @@ export function useVideoPoker() {
     });
 
     engineRef.current = nextEngine;
+    engineVariantRef.current = nextVariant;
     setBalance(nextBalance);
     setSnapshot(nextEngine.snapshot());
     setHeldIndexes([]);
@@ -196,7 +214,7 @@ export function useVideoPoker() {
     if (phase === 'dealt' || inputLocked || snapshot.credits < bet) {
       return;
     }
-    const dealtHand = engine.deal(bet);
+    const dealtHand = getEngine().deal(bet);
     setHeldIndexes([]);
     refresh();
     animateInitialDeal(dealtHand.hand);
@@ -207,7 +225,7 @@ export function useVideoPoker() {
       return;
     }
     const heldSet = new Set<number>(heldIndexes);
-    const result = engine.draw(heldIndexes as readonly CardIndex[]);
+    const result = getEngine().draw(heldIndexes as readonly CardIndex[]);
     setHeldIndexes([]);
     refresh();
     animateDraw(result.finalHand, heldSet);
@@ -236,6 +254,7 @@ export function useVideoPoker() {
     heldIndexes,
     lastResult,
     phase,
+    selectedVariant,
     visibleHand,
     inputLocked,
     canDeal: !inputLocked && phase !== 'dealt' && snapshot.credits >= bet,

@@ -1,12 +1,22 @@
 import { useHotkey } from '@tanstack/react-hotkeys';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { HAND_LABELS, HAND_ORDER } from '../data/payTable';
-import type { CreditAmount, HandRank, PayTableConfig } from '../engine';
-import { clonePayTable } from '../engine';
+import { HAND_LABELS, getPayTableRanks } from '../data/payTable';
+import {
+  GAME_DEFINITIONS,
+  GAME_VARIANTS,
+  clonePayTable,
+  getDefaultPayTable,
+  type CreditAmount,
+  type GameVariant,
+  type HandRank,
+  type PayTableConfig,
+  type VariantPayTables,
+} from '../engine';
 import {
   DEFAULT_BALANCE,
-  DEFAULT_PAYS,
+  DEFAULT_PAY_TABLES,
+  DEFAULT_VARIANT,
   getDefaultShowKeyboardShortcuts,
   useUserSettingsStore,
 } from '../stores/userSettings';
@@ -27,18 +37,25 @@ import { Label } from './ui/label';
 interface SettingsDialogProps {
   readonly triggerClassName: string;
   readonly triggerContent?: React.ReactNode;
-  readonly onApplySettings: (settings: { readonly balance: CreditAmount; readonly pays: PayTableConfig }) => void;
+  readonly onApplySettings: (settings: {
+    readonly balance: CreditAmount;
+    readonly variant: GameVariant;
+    readonly pays: PayTableConfig;
+  }) => void;
 }
 
 const KEY_PRESS_EFFECT_MS = 120;
 
-type EditablePayTable = Record<HandRank, [string, string, string, string, string]>;
+type EditablePayTable = Partial<Record<HandRank, [string, string, string, string, string]>>;
 
-function stringifyPayTable(payTable: PayTableConfig): EditablePayTable {
-  const nextPayTable = {} as EditablePayTable;
+function stringifyPayTable(variant: GameVariant, payTable: PayTableConfig): EditablePayTable {
+  const nextPayTable: EditablePayTable = {};
 
-  for (const rank of [...HAND_ORDER, 'nothing'] as const) {
-    nextPayTable[rank] = payTable[rank].map((payout) => String(payout)) as [string, string, string, string, string];
+  for (const rank of getPayTableRanks(variant)) {
+    const row = payTable[rank];
+    if (row) {
+      nextPayTable[rank] = row.map((payout) => String(payout)) as [string, string, string, string, string];
+    }
   }
 
   return nextPayTable;
@@ -53,11 +70,15 @@ function parseSafeInteger(value: string): number | undefined {
   return Number.isSafeInteger(parsedValue) ? parsedValue : undefined;
 }
 
-function parsePayTable(payTable: EditablePayTable): PayTableConfig | undefined {
-  const nextPayTable = {} as Record<HandRank, [number, number, number, number, number]>;
+function parsePayTable(variant: GameVariant, payTable: EditablePayTable): PayTableConfig | undefined {
+  const nextPayTable: Partial<Record<HandRank, [number, number, number, number, number]>> = {};
 
-  for (const rank of [...HAND_ORDER, 'nothing'] as const) {
-    const row = payTable[rank].map(parseSafeInteger);
+  for (const rank of getPayTableRanks(variant)) {
+    const editableRow = payTable[rank];
+    if (!editableRow) {
+      return undefined;
+    }
+    const row = editableRow.map(parseSafeInteger);
     if (row.some((value) => value === undefined)) {
       return undefined;
     }
@@ -65,17 +86,25 @@ function parsePayTable(payTable: EditablePayTable): PayTableConfig | undefined {
     nextPayTable[rank] = row as [number, number, number, number, number];
   }
 
-  return clonePayTable(nextPayTable);
+  return clonePayTable(variant, nextPayTable);
+}
+
+function payTableForVariant(payTablesByVariant: VariantPayTables, variant: GameVariant): PayTableConfig {
+  return payTablesByVariant[variant] ?? getDefaultPayTable(variant);
 }
 
 export function SettingsDialog({ triggerClassName, triggerContent, onApplySettings }: SettingsDialogProps) {
   const balance = useUserSettingsStore((state) => state.balance);
-  const pays = useUserSettingsStore((state) => state.pays);
+  const selectedVariant = useUserSettingsStore((state) => state.selectedVariant);
+  const payTablesByVariant = useUserSettingsStore((state) => state.payTablesByVariant);
   const showKeyboardShortcuts = useUserSettingsStore((state) => state.showKeyboardShortcuts);
   const setShowKeyboardShortcuts = useUserSettingsStore((state) => state.setShowKeyboardShortcuts);
   const [open, setOpen] = useState(false);
+  const [variantInput, setVariantInput] = useState<GameVariant>(selectedVariant);
   const [balanceInput, setBalanceInput] = useState(String(balance));
-  const [payTableInput, setPayTableInput] = useState<EditablePayTable>(() => stringifyPayTable(pays));
+  const [payTableInput, setPayTableInput] = useState<EditablePayTable>(() =>
+    stringifyPayTable(selectedVariant, payTableForVariant(payTablesByVariant, selectedVariant)),
+  );
   const [serviceWorkerRegistration, setServiceWorkerRegistration] = useState<ServiceWorkerRegistration>();
   const [isCheckingForUpdate, setIsCheckingForUpdate] = useState(false);
   const [updateStatus, setUpdateStatus] = useState('');
@@ -86,9 +115,10 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
   const reloadOnControllerChange = useRef(false);
 
   const parsedBalance = parseSafeInteger(balanceInput);
-  const parsedPayTable = useMemo(() => parsePayTable(payTableInput), [payTableInput]);
+  const parsedPayTable = useMemo(() => parsePayTable(variantInput, payTableInput), [payTableInput, variantInput]);
   const canApplyBalance = parsedBalance !== undefined;
   const canApplyPayTable = parsedPayTable !== undefined;
+  const visibleRanks = getPayTableRanks(variantInput).filter((rank) => rank !== 'nothing');
 
   useHotkey(
     'O',
@@ -165,12 +195,23 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
     });
   }, []);
 
+  function applyVariant(nextVariant: GameVariant) {
+    const nextPays = payTableForVariant(payTablesByVariant, nextVariant);
+    setVariantInput(nextVariant);
+    setPayTableInput(stringifyPayTable(nextVariant, nextPays));
+    onApplySettings({ balance, variant: nextVariant, pays: nextPays });
+  }
+
   function applyBalance() {
     if (parsedBalance === undefined) {
       return;
     }
 
-    onApplySettings({ balance: parsedBalance, pays });
+    onApplySettings({
+      balance: parsedBalance,
+      variant: selectedVariant,
+      pays: payTableForVariant(payTablesByVariant, selectedVariant),
+    });
   }
 
   function applyPayTable() {
@@ -178,20 +219,22 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
       return;
     }
 
-    onApplySettings({ balance, pays: parsedPayTable });
+    onApplySettings({ balance, variant: variantInput, pays: parsedPayTable });
   }
 
   function resetPayTable() {
-    setPayTableInput(stringifyPayTable(DEFAULT_PAYS));
-    onApplySettings({ balance, pays: DEFAULT_PAYS });
+    const defaultPayTable = getDefaultPayTable(variantInput);
+    setPayTableInput(stringifyPayTable(variantInput, defaultPayTable));
+    onApplySettings({ balance, variant: variantInput, pays: defaultPayTable });
   }
 
   function wipeLocalData() {
     localStorage.clear();
+    setVariantInput(DEFAULT_VARIANT);
     setBalanceInput(String(DEFAULT_BALANCE));
-    setPayTableInput(stringifyPayTable(DEFAULT_PAYS));
+    setPayTableInput(stringifyPayTable(DEFAULT_VARIANT, DEFAULT_PAY_TABLES[DEFAULT_VARIANT]));
     setShowKeyboardShortcuts(getDefaultShowKeyboardShortcuts());
-    onApplySettings({ balance: DEFAULT_BALANCE, pays: DEFAULT_PAYS });
+    onApplySettings({ balance: DEFAULT_BALANCE, variant: DEFAULT_VARIANT, pays: DEFAULT_PAY_TABLES[DEFAULT_VARIANT] });
   }
 
   async function checkForUpdates() {
@@ -239,8 +282,9 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
       open={open}
       onOpenChange={(nextOpen) => {
         if (nextOpen) {
+          setVariantInput(selectedVariant);
           setBalanceInput(String(balance));
-          setPayTableInput(stringifyPayTable(pays));
+          setPayTableInput(stringifyPayTable(selectedVariant, payTableForVariant(payTablesByVariant, selectedVariant)));
         }
 
         setOpen(nextOpen);
@@ -263,6 +307,36 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
           </DialogHeader>
 
           <div className="grid gap-6 overflow-y-auto px-6 py-5">
+            <section className="grid gap-3" aria-labelledby="game-settings-title">
+              <div className="grid gap-1">
+                <h2
+                  id="game-settings-title"
+                  className="text-base leading-none font-black text-[var(--settings-accent)]"
+                >
+                  Game
+                </h2>
+                <p className="text-sm text-[var(--settings-secondary-text)]">Choose the active video poker machine.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {GAME_VARIANTS.map((variant) => (
+                  <Button
+                    key={variant}
+                    type="button"
+                    variant={variant === selectedVariant ? 'default' : 'outline'}
+                    aria-pressed={variant === selectedVariant}
+                    onClick={() => applyVariant(variant)}
+                    className={
+                      variant === selectedVariant
+                        ? 'bg-[var(--settings-button)] font-black text-[var(--settings-button-text)] hover:bg-[var(--settings-button-hover)]'
+                        : 'border-[var(--settings-border)] bg-transparent font-black text-[var(--settings-accent)] hover:bg-[var(--settings-hover-blue)] hover:text-[var(--settings-accent)]'
+                    }
+                  >
+                    {GAME_DEFINITIONS[variant].label}
+                  </Button>
+                ))}
+              </div>
+            </section>
+
             <section className="grid gap-3" aria-labelledby="balance-settings-title">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div className="grid gap-1">
@@ -348,21 +422,17 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
                       {bet}
                     </div>
                   ))}
-                  {HAND_ORDER.map((rank) => (
+                  {visibleRanks.map((rank) => (
                     <PayTableRow
                       key={rank}
                       rank={rank}
-                      row={payTableInput[rank]}
+                      row={payTableInput[rank] ?? ['0', '0', '0', '0', '0']}
                       onChange={(betIndex, value) => {
                         setPayTableInput((current) => ({
                           ...current,
-                          [rank]: current[rank].map((payout, index) => (index === betIndex ? value : payout)) as [
-                            string,
-                            string,
-                            string,
-                            string,
-                            string,
-                          ],
+                          [rank]: (current[rank] ?? ['0', '0', '0', '0', '0']).map((payout, index) =>
+                            index === betIndex ? value : payout,
+                          ) as [string, string, string, string, string],
                         }));
                       }}
                     />

@@ -1,10 +1,21 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { PAY_TABLE, clonePayTable, type CreditAmount, type HandRank, type PayTableConfig } from '../engine';
+import {
+  GAME_VARIANTS,
+  clonePayTable,
+  getDefaultPayTable,
+  type CreditAmount,
+  type GameVariant,
+  type HandRank,
+  type PayTableConfig,
+  type VariantPayTables,
+} from '../engine';
 
 export const GAME_SPEEDS = ['slow', 'medium', 'fast'] as const;
 export const DEFAULT_BALANCE = 100;
-export const DEFAULT_PAYS = clonePayTable(PAY_TABLE);
+export const DEFAULT_VARIANT: GameVariant = 'JacksOrBetter';
+export const DEFAULT_PAY_TABLES = createDefaultPayTables();
+export const DEFAULT_PAYS = DEFAULT_PAY_TABLES[DEFAULT_VARIANT];
 const DEFAULT_SPEED: GameSpeed = 'medium';
 const MOBILE_SHORTCUT_MEDIA_QUERY = '(max-width: 760px)';
 
@@ -14,12 +25,14 @@ interface UserSettingsState {
   readonly speed: GameSpeed;
   readonly showKeyboardShortcuts: boolean;
   readonly balance: CreditAmount;
-  readonly pays: PayTableConfig;
+  readonly selectedVariant: GameVariant;
+  readonly payTablesByVariant: VariantPayTables;
   readonly setSpeed: (speed: GameSpeed) => void;
   readonly setShowKeyboardShortcuts: (showKeyboardShortcuts: boolean) => void;
   readonly cycleSpeed: () => void;
   readonly setBalance: (balance: CreditAmount) => void;
-  readonly setPays: (pays: PayTableConfig) => void;
+  readonly setSelectedVariant: (variant: GameVariant) => void;
+  readonly setPayTableForVariant: (variant: GameVariant, pays: PayTableConfig) => void;
   readonly setPay: (rank: HandRank, bet: 1 | 2 | 3 | 4 | 5, payout: CreditAmount) => void;
 }
 
@@ -31,6 +44,36 @@ function assertBalance(balance: CreditAmount): void {
 
 function isGameSpeed(value: unknown): value is GameSpeed {
   return GAME_SPEEDS.includes(value as GameSpeed);
+}
+
+function isGameVariant(value: unknown): value is GameVariant {
+  return GAME_VARIANTS.includes(value as GameVariant);
+}
+
+function createDefaultPayTables(): VariantPayTables {
+  return {
+    JacksOrBetter: getDefaultPayTable('JacksOrBetter'),
+    DeucesWild: getDefaultPayTable('DeucesWild'),
+    JokerPoker: getDefaultPayTable('JokerPoker'),
+  };
+}
+
+function clonePayTables(payTables: Partial<Record<GameVariant, PayTableConfig>> | undefined): VariantPayTables {
+  return {
+    JacksOrBetter: clonePayTable('JacksOrBetter', payTables?.JacksOrBetter ?? getDefaultPayTable('JacksOrBetter')),
+    DeucesWild: clonePayTable('DeucesWild', payTables?.DeucesWild ?? getDefaultPayTable('DeucesWild')),
+    JokerPoker: clonePayTable('JokerPoker', payTables?.JokerPoker ?? getDefaultPayTable('JokerPoker')),
+  };
+}
+
+function mergePayTables(persisted: Partial<UserSettingsState> & { readonly pays?: PayTableConfig }): VariantPayTables {
+  const legacyJacksPayTable = persisted.pays;
+  const persistedTables = persisted.payTablesByVariant;
+  return clonePayTables({
+    JacksOrBetter: persistedTables?.JacksOrBetter ?? legacyJacksPayTable,
+    DeucesWild: persistedTables?.DeucesWild,
+    JokerPoker: persistedTables?.JokerPoker,
+  });
 }
 
 export function getDefaultShowKeyboardShortcuts(): boolean {
@@ -47,7 +90,8 @@ export const useUserSettingsStore = create<UserSettingsState>()(
       speed: DEFAULT_SPEED,
       showKeyboardShortcuts: getDefaultShowKeyboardShortcuts(),
       balance: DEFAULT_BALANCE,
-      pays: DEFAULT_PAYS,
+      selectedVariant: DEFAULT_VARIANT,
+      payTablesByVariant: DEFAULT_PAY_TABLES,
       setSpeed: (speed) => set({ speed }),
       setShowKeyboardShortcuts: (showKeyboardShortcuts) => set({ showKeyboardShortcuts }),
       cycleSpeed: () => {
@@ -59,39 +103,64 @@ export const useUserSettingsStore = create<UserSettingsState>()(
         assertBalance(balance);
         set({ balance });
       },
-      setPays: (pays) => set({ pays: clonePayTable(pays) }),
-      setPay: (rank, bet, payout) => {
-        const pays = clonePayTable(get().pays);
-        const nextRow = [...pays[rank]] as [number, number, number, number, number];
-        nextRow[bet - 1] = payout;
-        set({
-          pays: clonePayTable({
-            ...pays,
-            [rank]: nextRow,
+      setSelectedVariant: (selectedVariant) => set({ selectedVariant }),
+      setPayTableForVariant: (variant, pays) => {
+        set((state) => ({
+          payTablesByVariant: clonePayTables({
+            ...state.payTablesByVariant,
+            [variant]: clonePayTable(variant, pays),
           }),
-        });
+        }));
+      },
+      setPay: (rank, bet, payout) => {
+        const variant = get().selectedVariant;
+        const pays = clonePayTable(variant, get().payTablesByVariant[variant]);
+        const row = pays[rank];
+        if (!row) {
+          throw new RangeError(`Hand rank ${rank} is not valid for ${variant}.`);
+        }
+        const nextRow = [...row] as [number, number, number, number, number];
+        nextRow[bet - 1] = payout;
+        set((state) => ({
+          payTablesByVariant: clonePayTables({
+            ...state.payTablesByVariant,
+            [variant]: {
+              ...pays,
+              [rank]: nextRow,
+            },
+          }),
+        }));
       },
     }),
     {
       name: 'video-poker-user-settings',
       merge: (persistedState, currentState) => {
-        const persisted = persistedState as Partial<UserSettingsState> | undefined;
+        const persisted = persistedState as
+          | (Partial<UserSettingsState> & { readonly pays?: PayTableConfig })
+          | undefined;
+
+        if (!persisted) {
+          return currentState;
+        }
 
         return {
           ...currentState,
           ...persisted,
-          speed: isGameSpeed(persisted?.speed) ? persisted.speed : DEFAULT_SPEED,
+          speed: isGameSpeed(persisted.speed) ? persisted.speed : DEFAULT_SPEED,
+          selectedVariant: isGameVariant(persisted.selectedVariant) ? persisted.selectedVariant : DEFAULT_VARIANT,
           showKeyboardShortcuts:
-            typeof persisted?.showKeyboardShortcuts === 'boolean'
+            typeof persisted.showKeyboardShortcuts === 'boolean'
               ? persisted.showKeyboardShortcuts
               : getDefaultShowKeyboardShortcuts(),
+          payTablesByVariant: mergePayTables(persisted),
         };
       },
       partialize: (state) => ({
         speed: state.speed,
         showKeyboardShortcuts: state.showKeyboardShortcuts,
         balance: state.balance,
-        pays: state.pays,
+        selectedVariant: state.selectedVariant,
+        payTablesByVariant: state.payTablesByVariant,
       }),
     },
   ),

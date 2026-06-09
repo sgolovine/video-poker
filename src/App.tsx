@@ -5,6 +5,7 @@ import { CardSlot } from './components/CardSlot';
 import { GameMeters } from './components/GameMeters';
 import { PayTable } from './components/PayTable';
 import { SettingsDialog } from './components/SettingsDialog';
+import { getGameLabel } from './data/payTable';
 import { useVideoPoker } from './hooks/useVideoPoker';
 import { getCardImage } from './lib/cardAssets';
 import { useLayoutStore } from './stores/layout';
@@ -14,9 +15,11 @@ function App() {
   const isPayTableVisible = useLayoutStore((state) => state.isPayTableVisible);
   const speed = useUserSettingsStore((state) => state.speed);
   const showKeyboardShortcuts = useUserSettingsStore((state) => state.showKeyboardShortcuts);
-  const pays = useUserSettingsStore((state) => state.pays);
+  const selectedVariant = useUserSettingsStore((state) => state.selectedVariant);
+  const pays = useUserSettingsStore((state) => state.payTablesByVariant[state.selectedVariant]);
   const cycleSpeed = useUserSettingsStore((state) => state.cycleSpeed);
-  const setPays = useUserSettingsStore((state) => state.setPays);
+  const setSelectedVariant = useUserSettingsStore((state) => state.setSelectedVariant);
+  const setPayTableForVariant = useUserSettingsStore((state) => state.setPayTableForVariant);
   const {
     bet,
     activePayTableColumn,
@@ -35,6 +38,7 @@ function App() {
   } = useVideoPoker();
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
   const [isArrowNavigationActive, setIsArrowNavigationActive] = useState(false);
+  const gameLabel = getGameLabel(selectedVariant);
 
   const statusText =
     phase === 'dealt'
@@ -105,12 +109,14 @@ function App() {
   );
 
   return (
-    <main className="grid min-h-svh bg-[#000099] text-[#ffff2f]" aria-label="Jacks or Better video poker">
+    <main className="grid min-h-svh bg-[#000099] text-[#ffff2f]" aria-label={`${gameLabel} video poker`}>
       <section
         className="video-shell grid min-h-svh w-full grid-rows-[auto_1fr_auto] overflow-hidden bg-[#000099] max-[760px]:grid-rows-[auto_auto_auto] max-[760px]:overflow-x-hidden"
         data-pay-table={isPayTableVisible ? 'visible' : 'hidden'}
       >
-        {isPayTableVisible ? <PayTable activeColumn={activePayTableColumn} payTable={pays} /> : null}
+        {isPayTableVisible ? (
+          <PayTable variant={selectedVariant} activeColumn={activePayTableColumn} payTable={pays} />
+        ) : null}
 
         <section className="play-area grid content-start pt-[17px] max-[760px]:pt-3" aria-live="polite">
           <div className="status-text mb-7 grid min-h-[42px] place-items-center text-center text-[28px] leading-none font-bold text-white max-[760px]:mb-4 max-[760px]:min-h-[34px] max-[760px]:text-xl">
@@ -164,16 +170,17 @@ function App() {
               <SettingsDialog
                 triggerClassName={className}
                 triggerContent={shortcut}
-                onApplySettings={({ balance, pays: nextPays }) => {
-                  setPays(nextPays);
-                  replaceMachine(balance, nextPays);
+                onApplySettings={({ balance, variant, pays: nextPays }) => {
+                  setSelectedVariant(variant);
+                  setPayTableForVariant(variant, nextPays);
+                  replaceMachine(balance, variant, nextPays);
                 }}
               />
             )}
             onSpeedChange={cycleSpeed}
           />
           <div className="w-[min(1228px,calc(100vw-396px))] min-w-[760px] justify-self-center text-right text-lg leading-none font-bold text-white [text-shadow:2px_2px_1px_#00195c] max-[1180px]:w-[calc(100vw-32px)] max-[1180px]:min-w-0 max-[760px]:w-full max-[760px]:text-sm">
-            JACKS OR BETTER
+            {gameLabel}
           </div>
         </footer>
       </section>

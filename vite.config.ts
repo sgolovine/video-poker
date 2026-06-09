@@ -1,12 +1,23 @@
-import { defineConfig } from 'vite';
 import react, { reactCompilerPreset } from '@vitejs/plugin-react';
 import babel from '@rolldown/plugin-babel';
 import tailwindcss from '@tailwindcss/vite';
+import { defineConfig } from 'vitest/config';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
 import packageJson from './package.json' with { type: 'json' };
 
 const appBackgroundColor = '#000099';
+const engineCoverage = {
+  all: true,
+  include: ['src/engine/**/*.ts'],
+  exclude: ['src/engine/**/*.d.ts'],
+  thresholds: {
+    lines: 100,
+    statements: 100,
+    functions: 100,
+    branches: 100,
+  },
+};
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -93,4 +104,7 @@ export default defineConfig({
       },
     }),
   ],
+  test: {
+    coverage: engineCoverage,
+  },
 });

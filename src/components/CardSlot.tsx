@@ -24,7 +24,7 @@ export function CardSlot({
   disabled,
   onToggle,
 }: CardSlotProps) {
-  const label = card ? `${card.rank} of ${card.suit}` : 'Card back';
+  const label = card ? (card.kind === 'joker' ? 'Joker' : `${card.rank} of ${card.suit}`) : 'Card back';
   const buttonClassName = [
     'card-slot group grid grid-rows-[32px_auto] gap-1.5 border-0 bg-transparent p-0 text-inherit outline-offset-8 focus-visible:outline-4 focus-visible:outline-[#ffff2f] disabled:cursor-default enabled:cursor-pointer',
     showMouseOutline

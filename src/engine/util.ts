@@ -1,3 +1,4 @@
+import pokersolver from 'pokersolver';
 import {
   EngineError,
   type Card,
@@ -6,47 +7,63 @@ import {
   type DealtHand,
   type EngineErrorCode,
   type GameConfig,
+  type GameVariant,
+  type GameVariantDefinition,
   type HandRank,
   type HandResult,
+  type JokerCard,
   type PayTableConfig,
   type PayoutRow,
   type Rank,
   type Rng,
+  type StandardCard,
+  type StandardRank,
   type Suit,
+  type VariantPayTables,
 } from './types';
+
+const { Hand } = pokersolver;
 
 export const SUITS: readonly Suit[] = Object.freeze(['clubs', 'diamonds', 'hearts', 'spades']);
 export const RANKS: readonly Rank[] = Object.freeze(['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']);
+export const GAME_VARIANTS: readonly GameVariant[] = Object.freeze(['JacksOrBetter', 'DeucesWild', 'JokerPoker']);
 
-const RANK_VALUES: Record<Rank, number> = {
-  '2': 2,
-  '3': 3,
-  '4': 4,
-  '5': 5,
-  '6': 6,
-  '7': 7,
-  '8': 8,
-  '9': 9,
-  '10': 10,
-  J: 11,
-  Q: 12,
-  K: 13,
-  A: 14,
-};
+const ROYAL_RANKS: ReadonlySet<StandardRank> = new Set(['10', 'J', 'Q', 'K', 'A']);
+const HIGH_PAIR_RANKS: ReadonlySet<StandardRank> = new Set(['J', 'Q', 'K', 'A']);
+const KINGS_OR_BETTER_RANKS: ReadonlySet<StandardRank> = new Set(['K', 'A']);
 
-/**
- * @private
- * @description Freezes one pay-table row while preserving its five bet columns.
- * @param {[number, number, number, number, number]} row - The payout values for one through five credits.
- * @returns {PayoutRow} The frozen payout row.
- * @example
- * payoutRow([1, 2, 3, 4, 5]);
- */
+const SUIT_TO_SOLVER: Readonly<Record<Suit, string>> = Object.freeze({
+  clubs: 'c',
+  diamonds: 'd',
+  hearts: 'h',
+  spades: 's',
+});
+
+const RANK_TO_SOLVER: Readonly<Record<Rank, string>> = Object.freeze({
+  '2': '2',
+  '3': '3',
+  '4': '4',
+  '5': '5',
+  '6': '6',
+  '7': '7',
+  '8': '8',
+  '9': '9',
+  '10': 'T',
+  J: 'J',
+  Q: 'Q',
+  K: 'K',
+  A: 'A',
+});
+
 function payoutRow(row: [number, number, number, number, number]): PayoutRow {
   return Object.freeze(row);
 }
 
-export const PAY_TABLE: Readonly<Record<HandRank, PayoutRow>> = Object.freeze({
+function handRankList<T extends readonly HandRank[]>(ranks: T): T {
+  return Object.freeze([...ranks]) as unknown as T;
+}
+
+export const JACKS_OR_BETTER_PAY_TABLE: PayTableConfig = Object.freeze({
   royalFlush: payoutRow([250, 500, 750, 1000, 4000]),
   straightFlush: payoutRow([50, 100, 150, 200, 250]),
   fourOfAKind: payoutRow([25, 50, 75, 100, 125]),
@@ -59,31 +76,183 @@ export const PAY_TABLE: Readonly<Record<HandRank, PayoutRow>> = Object.freeze({
   nothing: payoutRow([0, 0, 0, 0, 0]),
 });
 
-const PAY_TABLE_RANKS: readonly HandRank[] = Object.freeze([
-  'royalFlush',
-  'straightFlush',
-  'fourOfAKind',
-  'fullHouse',
-  'flush',
-  'straight',
-  'threeOfAKind',
-  'twoPair',
-  'jacksOrBetter',
-  'nothing',
-]);
+export const DEUCES_WILD_PAY_TABLE: PayTableConfig = Object.freeze({
+  royalFlush: payoutRow([250, 500, 750, 1000, 4000]),
+  fourDeuces: payoutRow([200, 400, 600, 800, 1000]),
+  wildRoyalFlush: payoutRow([25, 50, 75, 100, 125]),
+  fiveOfAKind: payoutRow([15, 30, 45, 60, 75]),
+  straightFlush: payoutRow([9, 18, 27, 36, 45]),
+  fourOfAKind: payoutRow([5, 10, 15, 20, 25]),
+  fullHouse: payoutRow([3, 6, 9, 12, 15]),
+  flush: payoutRow([2, 4, 6, 8, 10]),
+  straight: payoutRow([2, 4, 6, 8, 10]),
+  threeOfAKind: payoutRow([1, 2, 3, 4, 5]),
+  nothing: payoutRow([0, 0, 0, 0, 0]),
+});
 
-/**
- * @public
- * @description Creates a validated immutable copy of a complete pay table.
- * @param {PayTableConfig} payTable - The complete payout table for every hand rank.
- * @returns {PayTableConfig} A frozen detached pay table.
- * @example
- * clonePayTable(PAY_TABLE);
- */
-export function clonePayTable(payTable: PayTableConfig): PayTableConfig {
-  const nextPayTable = {} as Record<HandRank, PayoutRow>;
+export const JOKER_POKER_PAY_TABLE: PayTableConfig = Object.freeze({
+  royalFlush: payoutRow([250, 500, 750, 1000, 4000]),
+  fiveOfAKind: payoutRow([200, 400, 600, 800, 1000]),
+  wildRoyalFlush: payoutRow([100, 200, 300, 400, 500]),
+  straightFlush: payoutRow([50, 100, 150, 200, 250]),
+  fourOfAKind: payoutRow([20, 40, 60, 80, 100]),
+  fullHouse: payoutRow([7, 14, 21, 28, 35]),
+  flush: payoutRow([5, 10, 15, 20, 25]),
+  straight: payoutRow([3, 6, 9, 12, 15]),
+  threeOfAKind: payoutRow([2, 4, 6, 8, 10]),
+  twoPair: payoutRow([1, 2, 3, 4, 5]),
+  kingsOrBetter: payoutRow([1, 2, 3, 4, 5]),
+  nothing: payoutRow([0, 0, 0, 0, 0]),
+});
 
-  for (const rank of PAY_TABLE_RANKS) {
+export const DEFAULT_PAY_TABLES: VariantPayTables = Object.freeze({
+  JacksOrBetter: JACKS_OR_BETTER_PAY_TABLE,
+  DeucesWild: DEUCES_WILD_PAY_TABLE,
+  JokerPoker: JOKER_POKER_PAY_TABLE,
+});
+
+export const GAME_DEFINITIONS: Readonly<Record<GameVariant, GameVariantDefinition>> = Object.freeze({
+  JacksOrBetter: Object.freeze({
+    variant: 'JacksOrBetter',
+    label: 'Jacks or Better',
+    solverGame: 'jacksbetter',
+    deckType: 'standard52',
+    handOrder: handRankList([
+      'royalFlush',
+      'straightFlush',
+      'fourOfAKind',
+      'fullHouse',
+      'flush',
+      'straight',
+      'threeOfAKind',
+      'twoPair',
+      'jacksOrBetter',
+    ] as const),
+    payTableRanks: handRankList([
+      'royalFlush',
+      'straightFlush',
+      'fourOfAKind',
+      'fullHouse',
+      'flush',
+      'straight',
+      'threeOfAKind',
+      'twoPair',
+      'jacksOrBetter',
+      'nothing',
+    ] as const),
+    defaultPayTable: JACKS_OR_BETTER_PAY_TABLE,
+  }),
+  DeucesWild: Object.freeze({
+    variant: 'DeucesWild',
+    label: 'Deuces Wild',
+    solverGame: 'deuceswild',
+    deckType: 'standard52',
+    handOrder: handRankList([
+      'royalFlush',
+      'fourDeuces',
+      'wildRoyalFlush',
+      'fiveOfAKind',
+      'straightFlush',
+      'fourOfAKind',
+      'fullHouse',
+      'flush',
+      'straight',
+      'threeOfAKind',
+    ] as const),
+    payTableRanks: handRankList([
+      'royalFlush',
+      'fourDeuces',
+      'wildRoyalFlush',
+      'fiveOfAKind',
+      'straightFlush',
+      'fourOfAKind',
+      'fullHouse',
+      'flush',
+      'straight',
+      'threeOfAKind',
+      'nothing',
+    ] as const),
+    defaultPayTable: DEUCES_WILD_PAY_TABLE,
+  }),
+  JokerPoker: Object.freeze({
+    variant: 'JokerPoker',
+    label: 'Joker Poker',
+    solverGame: 'joker',
+    deckType: 'standard52PlusJoker',
+    handOrder: handRankList([
+      'royalFlush',
+      'fiveOfAKind',
+      'wildRoyalFlush',
+      'straightFlush',
+      'fourOfAKind',
+      'fullHouse',
+      'flush',
+      'straight',
+      'threeOfAKind',
+      'twoPair',
+      'kingsOrBetter',
+    ] as const),
+    payTableRanks: handRankList([
+      'royalFlush',
+      'fiveOfAKind',
+      'wildRoyalFlush',
+      'straightFlush',
+      'fourOfAKind',
+      'fullHouse',
+      'flush',
+      'straight',
+      'threeOfAKind',
+      'twoPair',
+      'kingsOrBetter',
+      'nothing',
+    ] as const),
+    defaultPayTable: JOKER_POKER_PAY_TABLE,
+  }),
+});
+
+export const PAY_TABLE = JACKS_OR_BETTER_PAY_TABLE;
+
+export function standardCard(rank: Rank, suit: Suit): StandardCard {
+  return { kind: 'standard', rank, suit };
+}
+
+export function jokerCard(): JokerCard {
+  return { kind: 'joker', rank: 'JOKER', suit: 'joker' };
+}
+
+export function isJokerCard(card: Card): card is JokerCard {
+  return card.kind === 'joker';
+}
+
+export function assertSafeNonNegativeInteger(value: number, code: EngineErrorCode): void {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new EngineError(code);
+  }
+}
+
+export function getGameDefinition(variant: GameVariant): GameVariantDefinition {
+  const definition = GAME_DEFINITIONS[variant];
+  if (!definition) {
+    throw new EngineError('invalidConfig');
+  }
+  return definition;
+}
+
+export function getDefaultPayTable(variant: GameVariant): PayTableConfig {
+  return clonePayTable(variant, getGameDefinition(variant).defaultPayTable);
+}
+
+export function clonePayTable(variant: GameVariant, payTable: PayTableConfig): PayTableConfig {
+  const definition = getGameDefinition(variant);
+  const expectedRanks = new Set<HandRank>(definition.payTableRanks);
+  const suppliedRanks = Object.keys(payTable) as HandRank[];
+
+  if (suppliedRanks.some((rank) => !expectedRanks.has(rank))) {
+    throw new EngineError('invalidConfig');
+  }
+
+  const nextPayTable: Partial<Record<HandRank, PayoutRow>> = {};
+  for (const rank of definition.payTableRanks) {
     const row = payTable[rank];
     if (!Array.isArray(row) || row.length !== 5) {
       throw new EngineError('invalidConfig');
@@ -100,78 +269,55 @@ export function clonePayTable(payTable: PayTableConfig): PayTableConfig {
   return Object.freeze(nextPayTable);
 }
 
-/**
- * @public
- * @description Creates a detached copy of a card value.
- * @param {Card} card - The card to copy.
- * @param {Rank} card.rank - The card rank.
- * @param {Suit} card.suit - The card suit.
- * @returns {Card} A new card with the same rank and suit.
- * @example
- * cloneCard({ rank: 'A', suit: 'spades' });
- */
 export function cloneCard(card: Card): Card {
-  return { rank: card.rank, suit: card.suit };
+  return isJokerCard(card) ? jokerCard() : standardCard(card.rank, card.suit);
 }
 
-/**
- * @public
- * @description Creates detached copies of every card in a hand or deck.
- * @param {readonly Card[]} cards - The cards to copy.
- * @returns {Card[]} New card objects in the same order.
- * @example
- * cloneCards([{ rank: 'A', suit: 'spades' }]);
- */
 export function cloneCards(cards: readonly Card[]): Card[] {
   return cards.map(cloneCard);
 }
 
-/**
- * @private
- * @description Builds the uniqueness key used when validating cards.
- * @param {Card} card - The card to key.
- * @param {Rank} card.rank - The card rank.
- * @param {Suit} card.suit - The card suit.
- * @returns {string} The rank-and-suit key for the card.
- * @example
- * cardKey({ rank: 'K', suit: 'hearts' });
- */
-function cardKey(card: Card): string {
-  return `${card.rank}-${card.suit}`;
+export function cardKey(card: Card): string {
+  return isJokerCard(card) ? 'JOKER' : `${card.rank}-${card.suit}`;
 }
 
-/**
- * @public
- * @description Asserts that a credit-like value is a safe non-negative integer.
- * @param {number} value - The numeric value to validate.
- * @param {EngineErrorCode} code - The error code to throw when validation fails.
- * @returns void
- * @example
- * assertSafeNonNegativeInteger(100, 'invalidCreditAmount');
- */
-export function assertSafeNonNegativeInteger(value: number, code: EngineErrorCode): void {
-  if (!Number.isSafeInteger(value) || value < 0) {
-    throw new EngineError(code);
+export function createDeck(variant: GameVariant): Card[] {
+  const deck: Card[] = [];
+  for (const suit of SUITS) {
+    for (const rank of RANKS) {
+      deck.push(standardCard(rank, suit));
+    }
   }
+  if (getGameDefinition(variant).deckType === 'standard52PlusJoker') {
+    deck.push(jokerCard());
+  }
+  return deck;
 }
 
-/**
- * @private
- * @description Asserts that a deck contains exactly one valid instance of every canonical card.
- * @param {readonly Card[]} cards - The deck to validate.
- * @returns void
- * @example
- * assertValidDeck(createDeck());
- */
-function assertValidDeck(cards: readonly Card[]): void {
-  if (cards.length !== 52) {
+export function assertValidDeck(variant: GameVariant, cards: readonly Card[]): void {
+  const expectedLength = getGameDefinition(variant).deckType === 'standard52PlusJoker' ? 53 : 52;
+  assertValidCards(variant, cards, expectedLength);
+}
+
+export function assertValidHand(variant: GameVariant, cards: readonly Card[]): void {
+  assertValidCards(variant, cards, 5);
+}
+
+function assertValidCards(variant: GameVariant, cards: readonly Card[], expectedLength: number): void {
+  if (cards.length !== expectedLength) {
     throw new EngineError('invalidDeck');
   }
+  const allowsJoker = getGameDefinition(variant).deckType === 'standard52PlusJoker';
   const seen = new Set<string>();
   for (const card of cards) {
-    if (!RANKS.includes(card.rank) || !SUITS.includes(card.suit)) {
+    if (isJokerCard(card)) {
+      if (!allowsJoker) {
+        throw new EngineError('invalidDeck');
+      }
+    } else if (!RANKS.includes(card.rank) || !SUITS.includes(card.suit)) {
       throw new EngineError('invalidDeck');
     }
+
     const key = cardKey(card);
     if (seen.has(key)) {
       throw new EngineError('invalidDeck');
@@ -180,85 +326,17 @@ function assertValidDeck(cards: readonly Card[]): void {
   }
 }
 
-/**
- * @private
- * @description Asserts that a hand contains five unique valid cards.
- * @param {readonly Card[]} cards - The hand to validate.
- * @returns void
- * @example
- * assertValidHand(createDeck().slice(0, 5));
- */
-function assertValidHand(cards: readonly Card[]): void {
-  if (cards.length !== 5) {
-    throw new EngineError('invalidDeck');
-  }
-  const seen = new Set<string>();
-  for (const card of cards) {
-    if (!RANKS.includes(card.rank) || !SUITS.includes(card.suit)) {
-      throw new EngineError('invalidDeck');
-    }
-    const key = cardKey(card);
-    if (seen.has(key)) {
-      throw new EngineError('invalidDeck');
-    }
-    seen.add(key);
-  }
-}
-
-/**
- * @public
- * @description Creates the default RNG backed by Math.random.
- * @returns {Rng} An RNG that produces integer indexes from Math.random.
- * @example
- * const rng = defaultRng();
- * rng.nextInt(52);
- */
 export function defaultRng(): Rng {
   return {
-    /**
-     * @public
-     * @description Returns a random integer in the half-open range [0, maxExclusive).
-     * @param {number} maxExclusive - The exclusive upper bound.
-     * @returns {number} A random integer less than maxExclusive.
-     * @example
-     * defaultRng().nextInt(5);
-     */
     nextInt(maxExclusive: number): number {
       return Math.floor(Math.random() * maxExclusive);
     },
   };
 }
 
-/**
- * @public
- * @description Creates a canonical 52-card deck ordered by suit, then rank.
- * @returns {Card[]} A new ordered deck containing every supported card once.
- * @example
- * const deck = createDeck();
- */
-export function createDeck(): Card[] {
-  const deck: Card[] = [];
-  for (const suit of SUITS) {
-    for (const rank of RANKS) {
-      deck.push({ rank, suit });
-    }
-  }
-  return deck;
-}
-
-/**
- * @public
- * @description Returns a validated Fisher-Yates shuffle of a deck using the supplied RNG.
- * @param {readonly Card[]} deck - The complete canonical deck to shuffle.
- * @param {Rng} rng - The random number generator used for swap indexes.
- * @param {Function} rng.nextInt - Returns a random integer below an exclusive upper bound.
- * @returns {Card[]} A shuffled copy of the deck.
- * @example
- * shuffleDeck(createDeck(), defaultRng());
- */
-export function shuffleDeck(deck: readonly Card[], rng: Rng): Card[] {
+export function shuffleDeck(variant: GameVariant, deck: readonly Card[], rng: Rng): Card[] {
   const shuffled = cloneCards(deck);
-  assertValidDeck(shuffled);
+  assertValidDeck(variant, shuffled);
 
   for (let i = shuffled.length - 1; i > 0; i -= 1) {
     const j = rng.nextInt(i + 1);
@@ -268,154 +346,135 @@ export function shuffleDeck(deck: readonly Card[], rng: Rng): Card[] {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
 
-  assertValidDeck(shuffled);
+  assertValidDeck(variant, shuffled);
   return shuffled;
 }
 
-/**
- * @private
- * @description Checks whether a hand's unique rank values form a poker straight.
- * @param {readonly Card[]} cards - The cards to inspect.
- * @returns {boolean} True when the cards form a straight.
- * @example
- * isStraight(createDeck().slice(0, 5));
- */
-function isStraight(cards: readonly Card[]): boolean {
-  const values = [...new Set(cards.map((card) => RANK_VALUES[card.rank]))].sort((a, b) => a - b);
-  if (values.length !== 5) {
-    return false;
+export function cardToSolverNotation(card: Card): string {
+  if (isJokerCard(card)) {
+    return 'Or';
   }
-  if (values.join(',') === '2,3,4,5,14') {
-    return true;
-  }
-  return values.every((value, index) => index === 0 || value === values[index - 1] + 1);
+  return `${RANK_TO_SOLVER[card.rank]}${SUIT_TO_SOLVER[card.suit]}`;
 }
 
-/**
- * @private
- * @description Checks whether a hand contains exactly ten through ace.
- * @param {readonly Card[]} cards - The cards to inspect.
- * @returns {boolean} True when the hand contains a royal rank set.
- * @example
- * isRoyal([
- *   { rank: '10', suit: 'spades' },
- *   { rank: 'J', suit: 'spades' },
- *   { rank: 'Q', suit: 'spades' },
- *   { rank: 'K', suit: 'spades' },
- *   { rank: 'A', suit: 'spades' },
- * ]);
- */
-function isRoyal(cards: readonly Card[]): boolean {
-  const ranks = new Set(cards.map((card) => card.rank));
-  return ranks.size === 5 && ['10', 'J', 'Q', 'K', 'A'].every((rank) => ranks.has(rank as Rank));
-}
+export function evaluateHand(variant: GameVariant, cards: readonly Card[]): HandRank {
+  assertValidHand(variant, cards);
 
-/**
- * @public
- * @description Evaluates a five-card Jacks-or-Better hand from strongest to weakest rank.
- * @param {readonly Card[]} cards - The five cards to evaluate.
- * @returns {HandRank} The best matching hand rank.
- * @example
- * evaluateHand([
- *   { rank: 'J', suit: 'clubs' },
- *   { rank: 'J', suit: 'spades' },
- *   { rank: '2', suit: 'diamonds' },
- *   { rank: '7', suit: 'hearts' },
- *   { rank: '9', suit: 'clubs' },
- * ]);
- */
-export function evaluateHand(cards: readonly Card[]): HandRank {
-  assertValidHand(cards);
+  const definition = getGameDefinition(variant);
+  const solved = Hand.solve(cards.map(cardToSolverNotation), definition.solverGame, variant !== 'DeucesWild');
 
-  const flush = cards.every((card) => card.suit === cards[0]?.suit);
-  const straight = isStraight(cards);
-  const countsByRank = new Map<Rank, number>();
-  for (const card of cards) {
-    countsByRank.set(card.rank, (countsByRank.get(card.rank) ?? 0) + 1);
-  }
-  const counts = [...countsByRank.values()].sort((a, b) => b - a);
-
-  if (flush && isRoyal(cards)) {
+  if (isNaturalRoyal(cards)) {
     return 'royalFlush';
   }
-  if (flush && straight) {
-    return 'straightFlush';
-  }
-  if (counts[0] === 4) {
-    return 'fourOfAKind';
-  }
-  if (counts[0] === 3 && counts[1] === 2) {
-    return 'fullHouse';
-  }
-  if (flush) {
-    return 'flush';
-  }
-  if (straight) {
-    return 'straight';
-  }
-  if (counts[0] === 3) {
-    return 'threeOfAKind';
-  }
-  if (counts[0] === 2 && counts[1] === 2) {
-    return 'twoPair';
-  }
-  if (counts[0] === 2) {
-    const pairRank = [...countsByRank.entries()].find(([, count]) => count === 2)?.[0];
-    if (pairRank && ['J', 'Q', 'K', 'A'].includes(pairRank)) {
-      return 'jacksOrBetter';
-    }
+
+  if (variant === 'DeucesWild' && countDeuces(cards) === 4) {
+    return 'fourDeuces';
   }
 
-  return 'nothing';
+  if (solved.name === 'Five of a Kind') {
+    return 'fiveOfAKind';
+  }
+
+  if (solved.descr === 'Wild Royal Flush') {
+    return 'wildRoyalFlush';
+  }
+
+  if (variant === 'JokerPoker' && solved.name === 'High Card' && hasKingsOrBetterPair(cards)) {
+    return 'kingsOrBetter';
+  }
+
+  return mapSolverRank(variant, solved.name, cards);
 }
 
-/**
- * @public
- * @description Returns the configured payout for a hand rank and a one-to-five credit bet.
- * @param {HandRank} handRank - The evaluated hand rank.
- * @param {number} bet - The credit bet from one through five.
- * @returns {CreditAmount} The payout for the hand rank and bet size.
- * @example
- * getPayout('royalFlush', 5);
- */
-export function getPayout(handRank: HandRank, bet: number, payTable: PayTableConfig = PAY_TABLE): CreditAmount {
+function mapSolverRank(variant: GameVariant, name: string, cards: readonly Card[]): HandRank {
+  switch (name) {
+    case 'Straight Flush':
+      return 'straightFlush';
+    case 'Four of a Kind':
+      return 'fourOfAKind';
+    case 'Full House':
+      return 'fullHouse';
+    case 'Flush':
+      return 'flush';
+    case 'Straight':
+      return 'straight';
+    case 'Three of a Kind':
+      return 'threeOfAKind';
+    case 'Two Pair':
+      return 'twoPair';
+    case 'Pair':
+      return variant === 'JacksOrBetter' && hasJacksOrBetterPair(cards) ? 'jacksOrBetter' : 'nothing';
+    default:
+      return 'nothing';
+  }
+}
+
+function isNaturalRoyal(cards: readonly Card[]): boolean {
+  const standardCards = cards.filter((card): card is StandardCard => !isJokerCard(card));
+  if (standardCards.length !== 5) {
+    return false;
+  }
+  const firstSuit = standardCards[0]?.suit;
+  return (
+    standardCards.every((card) => card.suit === firstSuit) &&
+    new Set(standardCards.map((card) => card.rank)).size === 5 &&
+    standardCards.every((card) => ROYAL_RANKS.has(card.rank))
+  );
+}
+
+function countDeuces(cards: readonly Card[]): number {
+  return cards.filter((card) => !isJokerCard(card) && card.rank === '2').length;
+}
+
+function pairRanks(cards: readonly Card[]): StandardRank[] {
+  const counts = new Map<StandardRank, number>();
+  for (const card of cards) {
+    if (!isJokerCard(card)) {
+      counts.set(card.rank, (counts.get(card.rank) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()].filter(([, count]) => count >= 2).map(([rank]) => rank);
+}
+
+function hasJacksOrBetterPair(cards: readonly Card[]): boolean {
+  return pairRanks(cards).some((rank) => HIGH_PAIR_RANKS.has(rank));
+}
+
+function hasKingsOrBetterPair(cards: readonly Card[]): boolean {
+  const naturalPair = pairRanks(cards).some((rank) => KINGS_OR_BETTER_RANKS.has(rank));
+  if (naturalPair) {
+    return true;
+  }
+  return cards.some(isJokerCard) && cards.some((card) => !isJokerCard(card) && KINGS_OR_BETTER_RANKS.has(card.rank));
+}
+
+export function getPayout(
+  variant: GameVariant,
+  handRank: HandRank,
+  bet: number,
+  payTable: PayTableConfig = getDefaultPayTable(variant),
+): CreditAmount {
   if (!Number.isInteger(bet) || bet < 1 || bet > 5) {
     throw new EngineError('invalidBet');
   }
-  return payTable[handRank][bet - 1];
+  const row = clonePayTable(variant, payTable)[handRank];
+  if (!row) {
+    throw new EngineError('invalidConfig');
+  }
+  return row[bet - 1];
 }
 
-/**
- * @public
- * @description Validates that a game config matches the supported Jacks-or-Better rules.
- * @param {GameConfig} config - The game configuration to validate.
- * @param {'JacksOrBetter'} config.variant - The supported game variant.
- * @param {1} config.minBetCredits - The minimum allowed bet.
- * @param {5} config.maxBetCredits - The maximum allowed bet.
- * @param {CreditAmount} config.initialCredits - The starting credit balance.
- * @param {Rng} [config.rng] - Optional RNG for deterministic shuffles.
- * @returns void
- * @example
- * validateConfig({ variant: 'JacksOrBetter', minBetCredits: 1, maxBetCredits: 5, initialCredits: 100 });
- */
 export function validateConfig(config: GameConfig): void {
-  if (config.variant !== 'JacksOrBetter' || config.minBetCredits !== 1 || config.maxBetCredits !== 5) {
+  getGameDefinition(config.variant);
+  if (config.minBetCredits !== 1 || config.maxBetCredits !== 5) {
     throw new EngineError('invalidConfig');
   }
   assertSafeNonNegativeInteger(config.initialCredits, 'invalidCreditAmount');
   if (config.payTable) {
-    clonePayTable(config.payTable);
+    clonePayTable(config.variant, config.payTable);
   }
 }
 
-/**
- * @public
- * @description Validates, deduplicates, and sorts held indexes for a draw request.
- * @param {readonly CardIndex[]} heldIndexes - The zero-based card indexes to hold.
- * @returns {CardIndex[]} Sorted held indexes.
- * @example
- * normalizeHeldIndexes([4, 0, 2]);
- */
 export function normalizeHeldIndexes(heldIndexes: readonly CardIndex[]): CardIndex[] {
   const normalized: number[] = [];
   const seen = new Set<number>();
@@ -434,25 +493,10 @@ export function normalizeHeldIndexes(heldIndexes: readonly CardIndex[]): CardInd
   return normalized.sort((a, b) => a - b) as CardIndex[];
 }
 
-/**
- * @public
- * @description Creates a detached copy of a completed hand result.
- * @param {HandResult} result - The completed result to copy.
- * @param {'complete'} result.phase - The completed phase marker.
- * @param {readonly Card[]} result.finalHand - The final hand cards.
- * @param {readonly CardIndex[]} result.heldIndexes - The card indexes held through the draw.
- * @param {HandRank} result.handRank - The evaluated hand rank.
- * @param {CreditAmount} result.bet - The settled bet.
- * @param {CreditAmount} result.payout - The awarded payout.
- * @param {CreditAmount} result.netCredits - The payout minus the bet.
- * @param {CreditAmount} result.credits - The credit balance after settlement.
- * @returns {HandResult} A new result object with copied card and index arrays.
- * @example
- * cloneResult(result);
- */
 export function cloneResult(result: HandResult): HandResult {
   return {
     phase: 'complete',
+    variant: result.variant,
     finalHand: cloneCards(result.finalHand),
     heldIndexes: [...result.heldIndexes],
     handRank: result.handRank,
@@ -463,19 +507,15 @@ export function cloneResult(result: HandResult): HandResult {
   };
 }
 
-/**
- * @public
- * @description Builds a dealt-hand response with a detached hand copy.
- * @param {CreditAmount} credits - The remaining credits after the bet.
- * @param {CreditAmount} bet - The active bet for the dealt hand.
- * @param {readonly Card[]} hand - The dealt cards.
- * @returns {DealtHand} A dealt-hand response with copied cards.
- * @example
- * makeDealtHand(95, 5, createDeck().slice(0, 5));
- */
-export function makeDealtHand(credits: CreditAmount, bet: CreditAmount, hand: readonly Card[]): DealtHand {
+export function makeDealtHand(
+  variant: GameVariant,
+  credits: CreditAmount,
+  bet: CreditAmount,
+  hand: readonly Card[],
+): DealtHand {
   return {
     phase: 'dealt',
+    variant,
     credits,
     bet,
     hand: cloneCards(hand),
