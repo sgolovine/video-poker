@@ -12,7 +12,7 @@ export function PayTable({ variant, activeColumn, payTable }: PayTableProps) {
 
   return (
     <section
-      className="mt-12 grid w-[min(1228px,calc(100vw-396px))] min-w-[760px] justify-self-center border-2 border-[#a5a831] bg-[#000052] max-[1180px]:mt-7 max-[1180px]:w-[calc(100vw-32px)] max-[1180px]:min-w-0 max-[760px]:mt-3.5 max-[760px]:w-[calc(100vw-16px)] max-[760px]:overflow-x-auto"
+      className="pay-table mt-12 grid w-[min(1228px,calc(100vw-396px))] min-w-[760px] justify-self-center border-2 border-[#a5a831] bg-[#000052] max-[1180px]:mt-7 max-[1180px]:w-[calc(100vw-32px)] max-[1180px]:min-w-0 max-[760px]:mt-3.5 max-[760px]:w-[calc(100vw-16px)] max-[760px]:overflow-x-auto"
       aria-label={`${variant} pay table`}
     >
       {handOrder.map((rank) => (

@@ -107,10 +107,7 @@ export function Game() {
 
   return (
     <main className="grid min-h-svh bg-[#000099] text-[#ffff2f]" aria-label={`${gameLabel} video poker`}>
-      <section
-        className="video-shell grid min-h-svh w-full grid-rows-[auto_1fr_auto] overflow-hidden bg-[#000099] max-[760px]:grid-rows-[auto_auto_auto] max-[760px]:overflow-x-hidden"
-        data-pay-table={isPayTableVisible ? 'visible' : 'hidden'}
-      >
+      <section className="video-shell grid min-h-svh w-full grid-rows-[auto_1fr_auto] overflow-hidden bg-[#000099] max-[760px]:overflow-x-hidden">
         {isPayTableVisible ? (
           <PayTable variant={selectedVariant} activeColumn={activePayTableColumn} payTable={pays} />
         ) : null}
