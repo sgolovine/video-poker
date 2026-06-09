@@ -169,6 +169,19 @@ function settingsDialogReducer(state: SettingsDialogState, action: SettingsDialo
   }
 }
 
+const serviceWorkerReadyTimeoutMs = 3000;
+
+function getServiceWorkerBaseUrl() {
+  return new URL(import.meta.env.BASE_URL, window.location.href);
+}
+
+async function getReadyServiceWorkerRegistration() {
+  return Promise.race<ServiceWorkerRegistration | undefined>([
+    navigator.serviceWorker.ready,
+    new Promise((resolve) => window.setTimeout(() => resolve(undefined), serviceWorkerReadyTimeoutMs)),
+  ]);
+}
+
 function useServiceWorkerUpdates(dispatchDialog: Dispatch<SettingsDialogAction>) {
   const serviceWorkerRegistration = useRef<ServiceWorkerRegistration | undefined>(undefined);
   const reloadOnControllerChange = useRef(false);
@@ -231,7 +244,7 @@ function useServiceWorkerUpdates(dispatchDialog: Dispatch<SettingsDialogAction>)
     }
 
     navigator.serviceWorker
-      .register('/sw.js')
+      .register(new URL('sw.js', getServiceWorkerBaseUrl()).toString(), { scope: getServiceWorkerBaseUrl().toString() })
       .then(watchRegistration)
       .catch(() => {
         if (isMounted) {
@@ -252,6 +265,15 @@ function useServiceWorkerUpdates(dispatchDialog: Dispatch<SettingsDialogAction>)
   async function checkForUpdates() {
     dispatchDialog({ type: 'patch', patch: { isCheckingForUpdate: true, updateStatus: '', offlineReady: false } });
 
+    if (!import.meta.env.PROD) {
+      dispatchDialog({ type: 'patch', patch: { updateStatus: 'App updates are available after a production build.' } });
+      toast.info('Checked for app updates', {
+        description: 'App updates are available after a production build.',
+      });
+      dispatchDialog({ type: 'patch', patch: { isCheckingForUpdate: false } });
+      return;
+    }
+
     if (!('serviceWorker' in navigator)) {
       dispatchDialog({ type: 'patch', patch: { updateStatus: 'Updates are not available in this browser.' } });
       toast.info('Checked for app updates', {
@@ -262,19 +284,24 @@ function useServiceWorkerUpdates(dispatchDialog: Dispatch<SettingsDialogAction>)
     }
 
     try {
-      const registration = serviceWorkerRegistration.current ?? (await navigator.serviceWorker.getRegistration());
+      const registration =
+        serviceWorkerRegistration.current ??
+        (await navigator.serviceWorker.getRegistration()) ??
+        (await getReadyServiceWorkerRegistration());
+
       if (!registration) {
         dispatchDialog({
           type: 'patch',
-          patch: { updateStatus: 'Offline support is still starting. Try again in a moment.' },
+          patch: { updateStatus: 'Offline support is not registered for this page.' },
         });
         toast.info('Checked for app updates', {
-          description: 'Offline support is still starting. Try again in a moment.',
+          description: 'Offline support is not registered for this page.',
         });
         dispatchDialog({ type: 'patch', patch: { isCheckingForUpdate: false } });
         return;
       }
 
+      serviceWorkerRegistration.current = registration;
       await registration.update();
       dispatchDialog({ type: 'patch', patch: { updateStatus: 'No update found.' } });
       toast.info('Checked for app updates', {
