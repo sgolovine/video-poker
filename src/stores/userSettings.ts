@@ -10,6 +10,7 @@ import {
   type PayTableConfig,
   type VariantPayTables,
 } from '../engine';
+import { DEFAULT_CARD_BACK_ID, isCardBackId } from '../lib/cardAssets';
 
 export const GAME_SPEEDS = ['slow', 'medium', 'fast'] as const;
 export const DEFAULT_BALANCE = 100;
@@ -24,11 +25,13 @@ export type GameSpeed = (typeof GAME_SPEEDS)[number];
 interface UserSettingsState {
   readonly speed: GameSpeed;
   readonly showKeyboardShortcuts: boolean;
+  readonly cardBackId: string;
   readonly balance: CreditAmount;
   readonly selectedVariant: GameVariant;
   readonly payTablesByVariant: VariantPayTables;
   readonly setSpeed: (speed: GameSpeed) => void;
   readonly setShowKeyboardShortcuts: (showKeyboardShortcuts: boolean) => void;
+  readonly setCardBackId: (cardBackId: string) => void;
   readonly cycleSpeed: () => void;
   readonly setBalance: (balance: CreditAmount) => void;
   readonly setSelectedVariant: (variant: GameVariant) => void;
@@ -89,11 +92,15 @@ export const useUserSettingsStore = create<UserSettingsState>()(
     (set, get) => ({
       speed: DEFAULT_SPEED,
       showKeyboardShortcuts: getDefaultShowKeyboardShortcuts(),
+      cardBackId: DEFAULT_CARD_BACK_ID,
       balance: DEFAULT_BALANCE,
       selectedVariant: DEFAULT_VARIANT,
       payTablesByVariant: DEFAULT_PAY_TABLES,
       setSpeed: (speed) => set({ speed }),
       setShowKeyboardShortcuts: (showKeyboardShortcuts) => set({ showKeyboardShortcuts }),
+      setCardBackId: (cardBackId) => {
+        set({ cardBackId: isCardBackId(cardBackId) ? cardBackId : DEFAULT_CARD_BACK_ID });
+      },
       cycleSpeed: () => {
         const currentIndex = GAME_SPEEDS.indexOf(get().speed);
         const nextSpeed = GAME_SPEEDS[(currentIndex + 1) % GAME_SPEEDS.length];
@@ -147,6 +154,7 @@ export const useUserSettingsStore = create<UserSettingsState>()(
           ...currentState,
           ...persisted,
           speed: isGameSpeed(persisted.speed) ? persisted.speed : DEFAULT_SPEED,
+          cardBackId: isCardBackId(persisted.cardBackId) ? persisted.cardBackId : DEFAULT_CARD_BACK_ID,
           selectedVariant: isGameVariant(persisted.selectedVariant) ? persisted.selectedVariant : DEFAULT_VARIANT,
           showKeyboardShortcuts:
             typeof persisted.showKeyboardShortcuts === 'boolean'
@@ -158,6 +166,7 @@ export const useUserSettingsStore = create<UserSettingsState>()(
       partialize: (state) => ({
         speed: state.speed,
         showKeyboardShortcuts: state.showKeyboardShortcuts,
+        cardBackId: state.cardBackId,
         balance: state.balance,
         selectedVariant: state.selectedVariant,
         payTablesByVariant: state.payTablesByVariant,

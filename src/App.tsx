@@ -15,6 +15,7 @@ function App() {
   const isPayTableVisible = useLayoutStore((state) => state.isPayTableVisible);
   const speed = useUserSettingsStore((state) => state.speed);
   const showKeyboardShortcuts = useUserSettingsStore((state) => state.showKeyboardShortcuts);
+  const cardBackId = useUserSettingsStore((state) => state.cardBackId);
   const selectedVariant = useUserSettingsStore((state) => state.selectedVariant);
   const pays = useUserSettingsStore((state) => state.payTablesByVariant[state.selectedVariant]);
   const cycleSpeed = useUserSettingsStore((state) => state.cycleSpeed);
@@ -134,7 +135,7 @@ function App() {
                   <CardSlot
                     key={index}
                     card={card}
-                    imageUrl={getCardImage(card)}
+                    imageUrl={getCardImage(card, cardBackId)}
                     held={heldIndexes.includes(index)}
                     selected={isArrowNavigationActive && index === selectedCardIndex}
                     showMouseOutline={!isArrowNavigationActive}

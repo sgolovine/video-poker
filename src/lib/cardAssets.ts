@@ -36,18 +36,40 @@ const RANK_FILE_NAMES: Readonly<Record<Rank, string>> = {
   A: '1',
 };
 
-export const CARD_BACKS: readonly string[] = Object.freeze(
+export interface CardBackOption {
+  readonly id: string;
+  readonly label: string;
+  readonly url: string;
+}
+
+export const CARD_BACKS: readonly CardBackOption[] = Object.freeze(
   Object.entries(BACK_CARD_URLS)
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([, url]) => url),
+    .map(([path, url]) => {
+      const id = path.match(/\/([^/]+)\.svg$/)?.[1] ?? path;
+      return {
+        id,
+        label: `Back ${id.replace('back-', '')}`,
+        url,
+      };
+    }),
 );
 
-export const DEFAULT_CARD_BACK_URL = CARD_BACKS[0];
+export const DEFAULT_CARD_BACK_ID = CARD_BACKS[0]?.id ?? 'back-01';
+export const DEFAULT_CARD_BACK_URL = getCardBackImage(DEFAULT_CARD_BACK_ID);
 export const CARD_BACK_URL = DEFAULT_CARD_BACK_URL;
 
-export function getCardImage(card?: Card): string {
+export function isCardBackId(value: unknown): value is string {
+  return typeof value === 'string' && CARD_BACKS.some((cardBack) => cardBack.id === value);
+}
+
+export function getCardBackImage(cardBackId: string): string {
+  return CARD_BACKS.find((cardBack) => cardBack.id === cardBackId)?.url ?? requireAsset(CARD_BACKS[0]?.url);
+}
+
+export function getCardImage(card?: Card, cardBackId = DEFAULT_CARD_BACK_ID): string {
   if (!card) {
-    return DEFAULT_CARD_BACK_URL;
+    return getCardBackImage(cardBackId);
   }
 
   if (isJokerCard(card)) {

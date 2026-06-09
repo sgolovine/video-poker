@@ -13,6 +13,7 @@ import {
   type PayTableConfig,
   type VariantPayTables,
 } from '../engine';
+import { CARD_BACKS, DEFAULT_CARD_BACK_ID } from '../lib/cardAssets';
 import {
   DEFAULT_BALANCE,
   DEFAULT_PAY_TABLES,
@@ -98,7 +99,9 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
   const selectedVariant = useUserSettingsStore((state) => state.selectedVariant);
   const payTablesByVariant = useUserSettingsStore((state) => state.payTablesByVariant);
   const showKeyboardShortcuts = useUserSettingsStore((state) => state.showKeyboardShortcuts);
+  const cardBackId = useUserSettingsStore((state) => state.cardBackId);
   const setShowKeyboardShortcuts = useUserSettingsStore((state) => state.setShowKeyboardShortcuts);
+  const setCardBackId = useUserSettingsStore((state) => state.setCardBackId);
   const [open, setOpen] = useState(false);
   const [variantInput, setVariantInput] = useState<GameVariant>(selectedVariant);
   const [balanceInput, setBalanceInput] = useState(String(balance));
@@ -234,6 +237,7 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
     setBalanceInput(String(DEFAULT_BALANCE));
     setPayTableInput(stringifyPayTable(DEFAULT_VARIANT, DEFAULT_PAY_TABLES[DEFAULT_VARIANT]));
     setShowKeyboardShortcuts(getDefaultShowKeyboardShortcuts());
+    setCardBackId(DEFAULT_CARD_BACK_ID);
     onApplySettings({ balance: DEFAULT_BALANCE, variant: DEFAULT_VARIANT, pays: DEFAULT_PAY_TABLES[DEFAULT_VARIANT] });
   }
 
@@ -472,17 +476,44 @@ export function SettingsDialog({ triggerClassName, triggerContent, onApplySettin
                 >
                   Display
                 </h2>
-                <p className="text-sm text-[var(--settings-secondary-text)]">Control on-screen game hints.</p>
+                <p className="text-sm text-[var(--settings-secondary-text)]">
+                  Control the table display and card style.
+                </p>
               </div>
-              <label className="flex w-fit items-center gap-3 font-black text-[var(--settings-accent)]">
-                <input
-                  type="checkbox"
-                  checked={showKeyboardShortcuts}
-                  onChange={(event) => setShowKeyboardShortcuts(event.target.checked)}
-                  className="h-5 w-5 accent-[var(--settings-button)]"
-                />
-                Show Keyboard Shortcuts
-              </label>
+              <div className="grid gap-4">
+                <label className="flex w-fit items-center gap-3 font-black text-[var(--settings-accent)]">
+                  <input
+                    type="checkbox"
+                    checked={showKeyboardShortcuts}
+                    onChange={(event) => setShowKeyboardShortcuts(event.target.checked)}
+                    className="h-5 w-5 accent-[var(--settings-button)]"
+                  />
+                  Show Keyboard Shortcuts
+                </label>
+
+                <div className="grid gap-2">
+                  <Label className="text-[var(--settings-accent)]">Card Back</Label>
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(56px,1fr))] gap-2 rounded-sm border border-[var(--settings-border)] bg-[var(--settings-inset)] p-3">
+                    {CARD_BACKS.map((cardBack) => (
+                      <button
+                        key={cardBack.id}
+                        type="button"
+                        aria-label={cardBack.label}
+                        aria-pressed={cardBack.id === cardBackId}
+                        onClick={() => setCardBackId(cardBack.id)}
+                        className="grid min-h-24 place-items-center rounded-sm border-2 border-transparent bg-transparent p-1 outline-offset-2 transition enabled:cursor-pointer hover:border-[var(--settings-accent)] focus-visible:outline-2 focus-visible:outline-[var(--settings-accent)] aria-pressed:border-[var(--settings-button)] aria-pressed:bg-[var(--settings-hover-blue)]"
+                      >
+                        <img
+                          src={cardBack.url}
+                          alt=""
+                          className="aspect-[169/244] h-20 rounded-sm object-contain [filter:drop-shadow(1px_1px_0_#000)]"
+                          draggable="false"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </section>
 
             <section
