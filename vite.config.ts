@@ -50,7 +50,8 @@ export default defineConfig({
       manifest: {
         name: 'Video Poker',
         short_name: 'Video Poker',
-        description: 'A browser-based video poker machine.',
+        description:
+          'Play open-source video poker with Jacks or Better, Deuces Wild, and Joker Poker game modes, responsive controls, pay tables, and game statistics.',
         theme_color: appBackgroundColor,
         background_color: appBackgroundColor,
         display: 'standalone',
