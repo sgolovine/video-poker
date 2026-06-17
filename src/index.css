@@ -105,6 +105,12 @@ textarea {
   container-type: inline-size;
 }
 
+.pay-table,
+.funds-panel {
+  position: relative;
+  z-index: 40;
+}
+
 @media (max-width: 760px), (max-width: 950px) and (max-height: 500px) {
   .video-shell {
     height: var(--app-viewport-height);
@@ -114,7 +120,8 @@ textarea {
 
   /* The play area and footer are pinned to rows 2 and 3 so the card row sits
      in the same place whether or not the pay table is mounted in row 1. */
-  .pay-table {
+  .pay-table,
+  .funds-panel {
     grid-row: 1;
     align-self: end;
     margin-top: 0;
@@ -258,7 +265,7 @@ textarea {
     order: 1;
   }
 
-  .bet-controls > :nth-child(3) {
+  .bet-controls > :nth-child(2) {
     order: 2;
   }
 
@@ -270,7 +277,7 @@ textarea {
     order: 4;
   }
 
-  .bet-controls > :nth-child(2) {
+  .bet-controls > :nth-child(3) {
     order: 5;
   }
 
@@ -282,9 +289,10 @@ textarea {
 @media (max-width: 950px) and (max-height: 500px) and (orientation: landscape) {
   /* Landscape has no spare vertical space for an in-flow pay table, so it
      overlays the play area instead of occupying grid row 1. */
-  .pay-table {
+  .pay-table,
+  .funds-panel {
     position: fixed;
-    z-index: 20;
+    z-index: 40;
     top: 0.5rem;
     left: 50%;
     transform: translateX(-50%);

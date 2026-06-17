@@ -7,12 +7,15 @@ import { useLayoutStore } from '../../stores/layout';
 import { useUserSettingsStore } from '../../stores/userSettings';
 import { BetControls } from './components/BetControls';
 import { CardSlot } from './components/CardSlot';
+import { FundsPanel } from './components/FundsPanel';
 import { GameMeters } from './components/GameMeters';
 import { PayTable } from './components/PayTable';
 import { useVideoPoker } from './hooks/useVideoPoker';
 
 export function Game() {
   const isPayTableVisible = useLayoutStore((state) => state.isPayTableVisible);
+  const isFundsPanelVisible = useLayoutStore((state) => state.isFundsPanelVisible);
+  const toggleFundsPanel = useLayoutStore((state) => state.toggleFundsPanel);
   const openSettingsDialog = useLayoutStore((state) => state.setSettingsDialogOpen);
   const speed = useUserSettingsStore((state) => state.speed);
   const showKeyboardShortcuts = useUserSettingsStore((state) => state.showKeyboardShortcuts);
@@ -29,7 +32,9 @@ export function Game() {
     phase,
     visibleHand,
     canDeal,
+    canAddFunds,
     inputLocked,
+    addFunds,
     changeBet,
     deal,
     draw,
@@ -123,9 +128,12 @@ export function Game() {
         {isPayTableVisible ? (
           <PayTable variant={selectedVariant} activeColumn={activePayTableColumn} payTable={pays} />
         ) : null}
+        {isFundsPanelVisible ? (
+          <FundsPanel balance={credits} canAddFunds={canAddFunds} onAddFunds={addFunds} onClose={toggleFundsPanel} />
+        ) : null}
 
         <section className="play-area grid content-start pt-[17px] max-[760px]:pt-3" aria-live="polite">
-          <div className="status-text mb-7 grid min-h-[42px] place-items-center text-center text-[28px] leading-none font-bold text-white max-[760px]:mb-4 max-[760px]:min-h-[34px] max-[760px]:text-xl">
+          <div className="status-text mb-7 grid min-h-[38px] place-items-center text-center text-[24px] leading-none font-bold text-white max-[760px]:mb-4 max-[760px]:min-h-[34px] max-[760px]:text-xl">
             {statusText}
           </div>
           <div className="relative grid w-[min(1145px,calc(100vw-440px))] min-w-[700px] justify-self-center max-[1180px]:w-[calc(100vw-32px)] max-[1180px]:min-w-0 max-[760px]:w-[calc(100vw-16px)]">
@@ -174,7 +182,7 @@ export function Game() {
             onDraw={draw}
             onSpeedChange={cycleSpeed}
           />
-          <div className="w-[min(1228px,calc(100vw-396px))] min-w-[760px] justify-self-center text-right text-lg leading-none font-bold text-white [text-shadow:2px_2px_1px_#00195c] max-[1180px]:w-[calc(100vw-32px)] max-[1180px]:min-w-0 max-[760px]:w-full max-[760px]:text-sm">
+          <div className="w-[min(1228px,calc(100vw-396px))] min-w-[760px] justify-self-center text-right text-base leading-none font-bold text-white [text-shadow:2px_2px_1px_#00195c] max-[1180px]:w-[calc(100vw-32px)] max-[1180px]:min-w-0 max-[760px]:w-full max-[760px]:text-sm">
             {gameLabel}
           </div>
         </footer>

@@ -56,8 +56,8 @@ function Meter({
 
   return (
     <div className={['grid gap-0 text-white', alignClassName].join(' ')}>
-      <span className="meter-label block text-[28px] leading-[0.95] font-bold max-[760px]:text-base">{label}</span>
-      <strong className="meter-value block text-[31px] leading-[0.95] font-bold max-[760px]:text-lg">
+      <span className="meter-label block text-[24px] leading-[0.95] font-bold max-[760px]:text-base">{label}</span>
+      <strong className="meter-value block text-[27px] leading-[0.95] font-bold max-[760px]:text-lg">
         <NumberFlow
           className="block tabular-nums"
           value={value}

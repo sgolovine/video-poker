@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef } from 'react';
 import { HAND_LABELS } from '../../../data/payTable';
 import { VariantVideoPokerEngine } from '../../../engine/engine';
-import type { Card, CardIndex, GameVariant, HandRank, PayTableConfig } from '../../../engine/types';
+import type { Card, CardIndex, CreditAmount, GameVariant, HandRank, PayTableConfig } from '../../../engine/types';
 import { getDefaultPayTable } from '../../../engine/util';
 import { useStatsStore } from '../../../stores/stats';
 import { type GameSpeed, useUserSettingsStore } from '../../../stores/userSettings';
@@ -178,6 +178,16 @@ export function useVideoPoker() {
     forceGameRender();
   }
 
+  function addFunds(amount: CreditAmount) {
+    if (phase === 'dealt' || inputLocked) {
+      return;
+    }
+
+    const nextSnapshot = getEngine().addCredits(amount);
+    setBalance(nextSnapshot.credits);
+    forceGameRender();
+  }
+
   function replaceMachine(nextBalance: number, nextVariant: GameVariant, nextPays: PayTableConfig) {
     clearTimers();
     const nextEngine = new VariantVideoPokerEngine({
@@ -314,6 +324,8 @@ export function useVideoPoker() {
     visibleHand,
     inputLocked,
     canDeal: !inputLocked && phase !== 'dealt' && snapshot.credits >= bet,
+    canAddFunds: !inputLocked && phase !== 'dealt',
+    addFunds,
     changeBet,
     deal,
     draw,

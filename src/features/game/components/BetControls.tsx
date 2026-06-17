@@ -1,9 +1,10 @@
 import { useHotkeys } from '@tanstack/react-hotkeys';
 import { useState } from 'react';
+import { Kbd } from '../../../components/ui/kbd';
 import type { GamePhase } from '../../../engine/types';
 import { useLayoutStore } from '../../../stores/layout';
 import { GAME_SPEEDS, type GameSpeed } from '../../../stores/userSettings';
-import { Kbd } from '../../../components/ui/kbd';
+import { controlButtonClassName } from './controlButtonStyles';
 
 interface BetControlsProps {
   readonly bet: number;
@@ -18,7 +19,7 @@ interface BetControlsProps {
   readonly onSpeedChange: () => void;
 }
 
-type PressedControl = 'pay-table' | 'speed' | 'bet-down' | 'bet-up' | 'play';
+type PressedControl = 'pay-table' | 'funds' | 'speed' | 'bet-down' | 'bet-up' | 'play';
 interface PressedControlPulse {
   readonly control: PressedControl;
 }
@@ -75,6 +76,8 @@ export function BetControls({
   onSpeedChange,
 }: BetControlsProps) {
   const isPayTableVisible = useLayoutStore((state) => state.isPayTableVisible);
+  const isFundsPanelVisible = useLayoutStore((state) => state.isFundsPanelVisible);
+  const toggleFundsPanel = useLayoutStore((state) => state.toggleFundsPanel);
   const togglePayTable = useLayoutStore((state) => state.togglePayTable);
   const isDealt = phase === 'dealt';
   const activeChevronCount = GAME_SPEEDS.indexOf(speed) + 1;
@@ -84,8 +87,7 @@ export function BetControls({
   const canPlay = isDealt ? !inputLocked : canDeal;
   const [pressedControl, setPressedControl] = useState<PressedControlPulse>();
 
-  const buttonClassName =
-    'relative h-[62px] cursor-pointer whitespace-nowrap border-[3px] border-[#cab726] border-t-[#fff7a5] border-l-[#fff7a5] bg-[#ffe63d] px-3 text-[clamp(14px,1.18vw,22px)] leading-none font-black text-[#070707] [box-shadow:inset_-4px_-4px_0_#ad8f18,inset_3px_3px_0_#fff49a,3px_3px_0_#281900] transition-[transform,box-shadow,border-color] duration-75 ease-out enabled:active:translate-x-[3px] enabled:active:translate-y-[3px] enabled:active:border-[#ad8f18] enabled:active:border-t-[#8d7412] enabled:active:border-l-[#8d7412] enabled:active:[box-shadow:inset_3px_3px_0_#ad8f18,inset_-2px_-2px_0_#fff49a,0_0_0_#281900] enabled:data-[key-pressed=true]:animate-[control-press_120ms_ease-out] enabled:data-[key-pressed=true]:translate-x-[3px] enabled:data-[key-pressed=true]:translate-y-[3px] enabled:data-[key-pressed=true]:border-[#ad8f18] enabled:data-[key-pressed=true]:border-t-[#8d7412] enabled:data-[key-pressed=true]:border-l-[#8d7412] enabled:data-[key-pressed=true]:[box-shadow:inset_3px_3px_0_#ad8f18,inset_-2px_-2px_0_#fff49a,0_0_0_#281900] focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-white disabled:cursor-default disabled:border-[#686868] disabled:border-t-[#9a9a9a] disabled:border-l-[#9a9a9a] disabled:bg-[#777] disabled:text-transparent disabled:opacity-100 disabled:[box-shadow:inset_-4px_-4px_0_#565656,inset_3px_3px_0_#a3a3a3,3px_3px_0_#281900] max-[1180px]:text-[15px] max-[760px]:h-12 max-[760px]:whitespace-normal max-[760px]:px-1 max-[760px]:text-[11px]';
+  const buttonClassName = controlButtonClassName;
 
   function isControlPressed(control: PressedControl) {
     return pressedControl?.control === control;
@@ -107,6 +109,7 @@ export function BetControls({
   useHotkeys(
     [
       { hotkey: 'P', callback: () => runHotkey('pay-table', togglePayTable) },
+      { hotkey: 'F', callback: () => runHotkey('funds', toggleFundsPanel) },
       { hotkey: 'S', callback: () => runHotkey('speed', onSpeedChange) },
       {
         hotkey: '-',
@@ -121,7 +124,7 @@ export function BetControls({
 
   return (
     <div
-      className="bet-controls grid w-[min(1228px,calc(100vw-396px))] min-w-[760px] grid-cols-6 gap-5 justify-self-center max-[1180px]:w-[calc(100vw-32px)] max-[1180px]:min-w-0 max-[1180px]:gap-2.5 max-[760px]:w-full max-[760px]:gap-2"
+      className="bet-controls grid w-[min(1228px,calc(100vw-396px))] min-w-[760px] grid-cols-6 gap-4 justify-self-center max-[1180px]:w-[calc(100vw-32px)] max-[1180px]:min-w-0 max-[1180px]:gap-2.5 max-[760px]:w-full max-[760px]:gap-2"
       aria-label="Game controls"
     >
       <button
@@ -142,9 +145,12 @@ export function BetControls({
       <button
         type="button"
         className={buttonClassName}
-        disabled
+        data-key-pressed={isControlPressed('funds')}
+        aria-pressed={isFundsPanelVisible}
+        onClick={toggleFundsPanel}
+        onAnimationEnd={() => clearPressedControl('funds')}
       >
-        <ShortcutButtonContent label="OPTIONS" shortcut="O" disabled showShortcut={showKeyboardShortcuts} />
+        <ShortcutButtonContent label="FUNDS" shortcut="F" disabled={false} showShortcut={showKeyboardShortcuts} />
       </button>
       <button
         type="button"
