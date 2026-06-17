@@ -18,7 +18,7 @@ interface BetControlsProps {
   readonly onSpeedChange: () => void;
 }
 
-type PressedControl = 'pay-table' | 'options' | 'speed' | 'bet-down' | 'bet-up' | 'play';
+type PressedControl = 'pay-table' | 'speed' | 'bet-down' | 'bet-up' | 'play';
 interface PressedControlPulse {
   readonly control: PressedControl;
 }
@@ -76,7 +76,6 @@ export function BetControls({
 }: BetControlsProps) {
   const isPayTableVisible = useLayoutStore((state) => state.isPayTableVisible);
   const togglePayTable = useLayoutStore((state) => state.togglePayTable);
-  const openSettingsDialog = useLayoutStore((state) => state.setSettingsDialogOpen);
   const isDealt = phase === 'dealt';
   const activeChevronCount = GAME_SPEEDS.indexOf(speed) + 1;
   const nextSpeed = GAME_SPEEDS[activeChevronCount % GAME_SPEEDS.length];
@@ -108,7 +107,6 @@ export function BetControls({
   useHotkeys(
     [
       { hotkey: 'P', callback: () => runHotkey('pay-table', togglePayTable) },
-      { hotkey: 'O', callback: () => runHotkey('options', () => openSettingsDialog(true)) },
       { hotkey: 'S', callback: () => runHotkey('speed', onSpeedChange) },
       {
         hotkey: '-',
@@ -144,11 +142,9 @@ export function BetControls({
       <button
         type="button"
         className={buttonClassName}
-        data-key-pressed={isControlPressed('options')}
-        onClick={() => openSettingsDialog(true)}
-        onAnimationEnd={() => clearPressedControl('options')}
+        disabled
       >
-        <ShortcutButtonContent label="OPTIONS" shortcut="O" disabled={false} showShortcut={showKeyboardShortcuts} />
+        <ShortcutButtonContent label="OPTIONS" shortcut="O" disabled showShortcut={showKeyboardShortcuts} />
       </button>
       <button
         type="button"

@@ -1,4 +1,5 @@
 import { type UseHotkeyDefinition, useHotkeys } from '@tanstack/react-hotkeys';
+import { Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getGameLabel } from '../../data/payTable';
 import { getCardImage } from '../../lib/cardAssets';
@@ -12,6 +13,7 @@ import { useVideoPoker } from './hooks/useVideoPoker';
 
 export function Game() {
   const isPayTableVisible = useLayoutStore((state) => state.isPayTableVisible);
+  const openSettingsDialog = useLayoutStore((state) => state.setSettingsDialogOpen);
   const speed = useUserSettingsStore((state) => state.speed);
   const showKeyboardShortcuts = useUserSettingsStore((state) => state.showKeyboardShortcuts);
   const cardBackId = useUserSettingsStore((state) => state.cardBackId);
@@ -108,6 +110,16 @@ export function Game() {
   return (
     <main className="grid min-h-svh bg-[#000099] text-[#ffff2f]" aria-label={`${gameLabel} video poker`}>
       <section className="video-shell grid min-h-svh w-full grid-rows-[auto_1fr_auto] overflow-hidden bg-[#000099] max-[760px]:overflow-x-hidden">
+        <button
+          type="button"
+          className="fixed top-4 right-4 z-30 grid size-11 place-items-center rounded-full border border-white/35 bg-transparent text-white transition hover:border-white/70 hover:text-[#ffff2f] focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-white max-[760px]:top-2 max-[760px]:right-2 max-[760px]:size-10"
+          aria-label="Open settings"
+          title="Settings"
+          onClick={() => openSettingsDialog(true)}
+        >
+          <Settings className="size-6" aria-hidden="true" strokeWidth={2.5} />
+        </button>
+
         {isPayTableVisible ? (
           <PayTable variant={selectedVariant} activeColumn={activePayTableColumn} payTable={pays} />
         ) : null}
